@@ -1,0 +1,13 @@
+{
+  "name": "grpg",
+  "version": "1.1.0",
+  "description": "执魔 - 浏览器单机RPG",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check.js",
+    "playthrough": "node scripts/playthrough.js",
+    "uiSmoke": "node scripts/uiSmoke.js",
+    "balance": "node scripts/balance.js",
+    "serve": "python3 -m http.server 8000"
+  }
+}

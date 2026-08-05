@@ -1,0 +1,121 @@
+/* ===== 战斗界面 ===== */
+.combat-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 14px;
+}
+.combat-arena {
+  background: linear-gradient(180deg, #2a2440, #1a1728);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 300px;
+}
+.enemy-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.enemy-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all .15s ease;
+  min-width: 110px;
+}
+.enemy-unit:hover { border-color: var(--border-glow); background: rgba(255,255,255,.03); }
+.enemy-unit.selected { border-color: var(--danger); background: rgba(229,72,77,.12); }
+.enemy-unit .e-emoji { font-size: 2.8rem; }
+.enemy-unit .e-name { font-size: .9rem; font-weight: 600; }
+.enemy-unit.hidden { opacity: .35; }
+.enemy-unit .bar { width: 100px; }
+
+.player-unit {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+.player-unit .p-emoji { font-size: 2.4rem; }
+.player-unit .p-bars { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+
+.combat-log {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  height: 140px;
+  overflow-y: auto;
+  font-size: .92rem;
+}
+.combat-log .cl-line { padding: 1px 0; color: var(--text-dim); }
+.combat-log .cl-dmg { color: #ff9b9b; }
+.combat-log .cl-heal { color: #8be8b0; }
+.combat-log .cl-hit { color: var(--text); }
+.combat-log .cl-crit { color: var(--legendary); font-weight: 700; }
+.combat-log .cl-info { color: var(--gold-bright); }
+.combat-log .cl-title { color: var(--text); font-weight: 700; }
+.combat-log .cl-gold { color: var(--gold-bright); }
+
+/* 指令面板 */
+.command-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+.command-tabs { display: flex; gap: 8px; }
+.command-tabs button { flex: 1; }
+.command-tabs button.active { border-color: var(--gold); color: var(--gold-bright); }
+.command-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  min-height: 44px;
+}
+.command-grid button { text-align: center; padding: 10px 6px; font-size: .92rem; }
+.command-grid button.insufficient { opacity: .4; }
+
+/* 战斗结算 */
+.victory-panel {
+  background: linear-gradient(180deg, #1c2a1a, #101a10);
+  border: 1px solid #3a5a3a;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.victory-panel h2 { color: var(--xp); text-align: center; }
+.defeat-panel {
+  background: linear-gradient(180deg, #2a1414, #140a0a);
+  border: 1px solid #5a2a2a;
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.defeat-panel h2 { color: var(--danger); text-align: center; }
+.loot-list { color: var(--text-dim); font-size: .95rem; }
