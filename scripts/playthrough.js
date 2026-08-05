@@ -174,6 +174,28 @@ console.log('\n=== 扩展机制验证（零硬编码）===');
   assert(!!g.state.flags.FLAG_EXT_DONE, '追加任务的 onComplete flag 生效');
 }
 
+console.log('\n=== 对话驱动·第一章主线（真实玩家路径）===');
+{
+  // 用对话树驱动接取/交还（而非直接 turnIn），确保每个任务的 quest: action 都在对话里
+  const g = createGame({ seed: 61 });
+  g.story.startChapter(g, CONTENT.chapters.find((c) => c.index === 1));
+  const talk = (npcId) => g.dialogue.startDialogue(g, g.CONTENT.dialogues.find((d) => d.id === 'DLG_' + npcId.slice(4)), { npc: npcId });
+  const kill = (target, n) => { for (let i = 0; i < n; i++) quests.progressObjective(g, { type: 'kill', target, n: 1 }); };
+  const collect = (target, n) => quests.progressObjective(g, { type: 'collect', target, n });
+  const st = (id) => g.state.quests[id]?.status ?? '未接取';
+
+  talk('NPC_ELDER'); kill('SLIME', 3); talk('NPC_ELDER');
+  assert(st('Q1_CH1_VILLAGE_DESTROYED') === 'completed', 'Q1 通过村长对话交还');
+  kill('BAT', 5); talk('NPC_ELDER');
+  assert(st('Q2_CH1_CLEAR_CAVE') === 'completed', 'Q2「洞穴中的阴影」一次回村对话交还');
+  kill('MURLOC', 3); collect('MAT_BAT_WING', 3); talk('NPC_ELDER');
+  assert(st('Q3_CH1_HUNT') === 'completed', 'Q3「猎手的证明」一次回村对话交还');
+  talk('NPC_CAPTAIN');
+  assert(st('Q4_CH1_BOSS') === 'active', 'Q4「决战·黑鳞崖」可从铁臂处接取');
+  const bossCove = CONTENT.locations.find((l) => l.id === 'LOC_BOSS_COVE');
+  assert(!!g.state.quests[bossCove.reqQuest], '黑鳞崖 reqQuest 满足（已接取决战任务）');
+}
+
 console.log('\n====================================');
 console.log(`通过 ${passed} 项，失败 ${failed} 项`);
 if (failed > 0) process.exit(1);

@@ -1,6 +1,8 @@
 // UI 冒烟测试：node scripts/uiSmoke.js
 // 用最小 DOM mock 在 node 中加载整个 UI 层，驱动关键交互，捕捉模块加载/运行时崩溃。
 
+import { GAME_VERSION } from '../js/core/version.js';
+
 // ===== 最小 DOM mock =====
 function fakeEl(tag = 'div') {
   const el = {
@@ -75,7 +77,7 @@ assert(!!GRPG.boot, 'boot 可用');
 console.log('\n=== 标题画面 ===');
 GRPG.boot();
 assert(app.innerHTML.includes('执魔'), '标题渲染');
-assert(app.innerHTML.includes('v1.1.0'), '标题显示版本号');
+assert(app.innerHTML.includes(`v${GAME_VERSION}`), '标题显示版本号');
 
 console.log('\n=== 开新局 → 章节开场 ===');
 GRPG.startNewGame(0);

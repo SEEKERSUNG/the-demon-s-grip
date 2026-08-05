@@ -109,7 +109,8 @@
 
 **支线**：`type: 'side'`，可单阶段、无 `turnIn`（阶段全通自动完成）。
 
-- 接取/交还：对话节点 `actions: ['quest:QID']`。
+- 接取/交还：对话节点 `actions: ['quest:QID']`。**必须**：含 `turnIn` 的任务，交还人对话树要列出该 `quest:QID`，否则无法交还、主线卡死（参照 `DLG_ELDER` 需列全 Q1/Q2/Q3）。
+- 被 `unlocks` 链自动接取的任务，首阶段不要放 `talk` 目标（接取不经对话，talk 无法立即完成，玩家要跑两趟）；首阶段用 kill/collect/explore。
 - `kill` 目标被任务卡住时，检查敌人是否出现在某地点的 `enemies` 池，或 BOSS 战事件。
 - `collect` 目标物品需能通过掉落/宝箱/事件获得。
 

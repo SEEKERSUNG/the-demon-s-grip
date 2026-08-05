@@ -5,7 +5,7 @@
 | 脚本 | 命令 | 验证目标 | 断言数 |
 |---|---|---|---|
 | 内容校验 | `npm run check` | 内容引用完整性 / 枚举 / 数值 | — |
-| 端到端主线 | `npm run playthrough` | 三章主线走通、章节门禁、结局 flag、存档迁移、扩展机制 | 21 |
+| 端到端主线 | `npm run playthrough` | 三章主线走通、章节门禁、结局 flag、存档迁移、扩展机制、**对话驱动路径** | 26 |
 | UI 冒烟 | `npm run uiSmoke` | UI 屏幕渲染与关键交互（DOM mock） | 38 |
 | 数值平衡 | `npm run balance` | 正常玩家（开局配装 + 商店补给）通关第一章 | — |
 
@@ -35,6 +35,7 @@
 2. **开放结局**：ch3 无 `next`，和平 flag 置位，获得和平条约。
 3. **存档/读档/迁移**：save→load 深等且 flags 保留；`migrate` 补缺失字段（`cur` / `equipped`），版本号最新。
 4. **扩展机制验证（零硬编码）**：动态追加一条支线任务 → 完成 → `onComplete` flag 生效——证明追加数据即可扩展。
+5. **对话驱动路径（真实玩家）**：第一章 Q1→Q4 全部通过 `dialogue.startDialogue` 对话接取/交还（**不**直接调 `turnIn`），断言 Q2/Q3 回村**一次**对话即交还、铁臂处可接 Q4、黑鳞崖 `reqQuest` 解锁——堵住「对话树漏配 `quest:` action 导致主线卡死」的回归（曾因村长对话树缺 Q2/Q3 的 action，整个第一章断链）。
 
 ## uiSmoke.js — UI 冒烟
 

@@ -5,7 +5,7 @@
 export const DIALOGUES = [
   // ================= 第一章 =================
   { id: 'DLG_ELDER', start: 'n1', nodes: {
-    n1: { text: '……孩子，你回来了。', actions: ['quest:Q1_CH1_VILLAGE_DESTROYED'], options: [
+    n1: { text: '……孩子，你回来了。', actions: ['quest:Q1_CH1_VILLAGE_DESTROYED', 'quest:Q2_CH1_CLEAR_CAVE', 'quest:Q3_CH1_HUNT'], options: [
       { text: '村子现在怎么样了？', to: 'n2' },
       { text: '魔潮……到底是怎么回事？', to: 'n3' },
       { text: '北境的王国军是怎么回事？', to: 'n4' },
@@ -60,11 +60,13 @@ export const DIALOGUES = [
   { id: 'DLG_CAPTAIN', start: 'n1', nodes: {
     n1: { text: '你就是那个一个人杀进渔村的愣头青？好样的。那魔潮头目就盘踞在黑鳞崖。', actions: ['quest:Q4_CH1_BOSS'], options: [
       { text: '领命！', to: 'n2' },
+      { text: '黑鳞崖凶险，我怕自己还没准备好……', to: 'n4', cond: { flagNot: 'FLAG_Q3_DONE' } },
       { text: '黑鳞崖是什么地方？', to: 'n3' },
       { text: '（告辞）', to: 'end' },
     ] },
     n2: { text: '去吧，愿武神护佑你。取下它的首级，我向王上保举你入军。', options: [{ text: '……', to: 'end' }] },
     n3: { text: '黑鳞崖在村外东南，崖顶有个魔巢，妖气冲天，寻常士兵靠近了腿软。', options: [{ text: '……', to: 'n1' }] },
+    n4: { text: '（铁臂上下打量你）欲速则不达。你连鱼人的窝都没端干净，去了黑鳞崖也是送命。先去多杀些魔物，磨砺身手，再来找我。', options: [{ text: '……受教了。', to: 'end' }] },
   } },
 
   // ================= 第二章 =================

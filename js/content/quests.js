@@ -17,7 +17,7 @@ export const QUESTS = [
   { id: 'Q2_CH1_CLEAR_CAVE', name: '洞穴中的阴影', chapter: 1, type: 'main', giver: 'NPC_ELDER', turnIn: 'NPC_ELDER',
     desc: '渔村的幸存者说，魔物是从海蚀洞穴里涌出来的。去那里清剿潜藏的蝙蝠，斩断魔物的源头。',
     stages: [
-      { id: 's1', desc: '进入海蚀洞穴，消灭 5 只洞穴蝙蝠。', objectives: [{ type: 'talk', target: 'NPC_ELDER', n: 1 }, { type: 'kill', target: 'BAT', n: 5 }] },
+      { id: 's1', desc: '进入海蚀洞穴，消灭 5 只洞穴蝙蝠。', objectives: [{ type: 'kill', target: 'BAT', n: 5 }] },
       { id: 's2', desc: '返回渔村，向村长复命。', objectives: [{ type: 'talk', target: 'NPC_ELDER', n: 1 }] },
     ],
     rewards: { gold: 200, xp: 160, items: ['WPN_STEEL'] },
@@ -28,7 +28,7 @@ export const QUESTS = [
   { id: 'Q3_CH1_HUNT', name: '猎手的证明', chapter: 1, type: 'main', giver: 'NPC_ELDER', turnIn: 'NPC_ELDER',
     desc: '魔潮头目即将卷土重来。在决战之前，你需要证明自己的实力——猎杀鱼人，收集它们的战利品。',
     stages: [
-      { id: 's1', desc: '消灭 3 个鱼人战士，并收集 3 个蝙蝠翼。', objectives: [{ type: 'talk', target: 'NPC_ELDER', n: 1 }, { type: 'kill', target: 'MURLOC', n: 3 }, { type: 'collect', target: 'MAT_BAT_WING', n: 3 }] },
+      { id: 's1', desc: '消灭 3 个鱼人战士，并收集 3 个蝙蝠翼。', objectives: [{ type: 'kill', target: 'MURLOC', n: 3 }, { type: 'collect', target: 'MAT_BAT_WING', n: 3 }] },
       { id: 's2', desc: '返回渔村，向村长复命。', objectives: [{ type: 'talk', target: 'NPC_ELDER', n: 1 }] },
     ],
     rewards: { gold: 260, xp: 240, items: ['ACC_AMULET', 'POTION_M'] },

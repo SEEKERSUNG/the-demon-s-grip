@@ -64,6 +64,8 @@ base  *= skill.power                 // 普攻 power = 1
 - `startDialogue(game, dlg, ctx)`：进入即推进 `talk` 目标（同一拜访内可完成交还）；生成会话，返回 `{ session, view }`。
 - `nodeView(game, session)`：执行节点 `actions`，按 `cond` 过滤 `options`，产出视图。
   - actions：`quest:QID`（接取/交还）、`heal`（满恢复）、`flag:FLAG`、`shop:SHOP_ID`（广播 `dialogue:openShop`，UI 切换到商店屏幕）。
+- **交还依赖对话 action**：`turnIn` 只由 `quest:QID` action 触发（任务 `status='done'` 时）。含 `turnIn` 的任务，其 giver/turnIn NPC 的对话树**必须**列出对应 `quest:QID`，否则无法交还、主线卡死（曾因村长对话树漏配 Q2/Q3 的 action 导致第一章断链）。
+- **自动接取的任务首阶段不放 talk**：`unlocks` 链接取的任务没有「对话接取」步骤，接取时不会立即推进 `talk` 目标；若首阶段含 `talk` 目标，玩家回村需**两次**对话才能交还。首阶段应只放 kill/collect/explore 目标。
 - `chooseOption(game, session, i)`：执行选项 `effect`（setFlag / giveItem / removeItem / gold / hp/mp / 接任务），跳转 `to` 节点。
 - `effect` / `cond` 详见 [data-schemas.md](data-schemas.md#对话-dialoguejs)。
 

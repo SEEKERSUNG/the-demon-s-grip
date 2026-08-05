@@ -170,7 +170,7 @@
     n1: {
       text: '（叮叮当当）啊，来客了。',   // string 或 string[]
       speaker?: '...', emoji?: '...',    // 覆盖默认说话人
-      actions: ['quest:Q1S_SMITH'],      // quest:QID 接取/交还；heal 恢复；shop:SHOP_ID 开商店；flag:FLAG_X
+      actions: ['quest:Q1S_SMITH'],      // quest:QID 接取/交还（交还须把该 NPC 的所有可交还任务列全）；heal 恢复；shop:SHOP_ID 开商店；flag:FLAG_X
       options: [
         { text: '看看铺子里的货', to: 'n_shop' },
         { text: '（选这条才出现）', to: 'n2', cond: { flag: 'FLAG_X' } },
