@@ -20,7 +20,7 @@ import { GAME_VERSION, GAME_TITLE } from '../core/version.js';
 const app = document.getElementById('app');
 
 let game = null;
-export const uiState = { pendingInterlude: null, pendingNext: null, backStack: [], currentScreen: null, menuReturn: null, inventoryTab: 'bag' };
+export const uiState = { pendingInterlude: null, pendingNext: null, backStack: [], currentScreen: null, menuReturn: null, inventoryTab: 'bag', activeSlot: -1 };
 
 export function setGame(g) { game = g; if (g) wireGameEvents(g); }
 export function getGame() { return game; }
@@ -69,6 +69,16 @@ function hudHtml() {
 
 function backBtn(go) {
   return `<div class="row"><button onclick="GRPG.showScreen('${go}')">← 返回</button></div>`;
+}
+
+// 菜单里的自动保存状态行（玩家感知自动保存是否生效）
+function autoSaveStatusHtml() {
+  const as = uiState.activeSlot;
+  const info = as >= 0 ? slotInfo(as) : null;
+  if (!info) return '<div class="small dim" style="margin:0 0 10px">💾 自动保存未开启——新开档或读档后自动开启</div>';
+  const d = new Date(info.savedAt);
+  const t = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
+  return `<div class="small dim" style="margin:0 0 10px">💾 自动保存开启 · 存档位 ${as + 1} · 上次保存 ${t}</div>`;
 }
 
 function typeText(el, text, onDone) {
@@ -364,6 +374,7 @@ export const SCREENS = {
       <div class="row" style="margin-bottom:10px">
         <button onclick="GRPG.backFromMenu()">← 返回游戏</button>
       </div>
+      ${autoSaveStatusHtml()}
       <div class="panel">
         <div class="panel-title">☰ 菜单</div>
         <div class="list">

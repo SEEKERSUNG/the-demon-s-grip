@@ -89,8 +89,26 @@ export function slotLabel(slot) {
 export function doSave(slot) {
   const game = getGame();
   if (!game) return;
+  uiState.activeSlot = slot; // 手动保存也设为当前存档位
   const ok = saveToSlot(game.state, slot);
   toast(ok ? `已保存到存档位 ${slot + 1}` : '⚠️ 存档失败：浏览器存储不可用', ok ? 'gold' : '');
+}
+
+// 自动保存：写到当前存档位（新开档/读档后开启）。静默失败，无游戏/无档位/未开始章节时跳过。
+export function autoSave() {
+  const game = getGame();
+  if (!game) return false;
+  const slot = uiState.activeSlot;
+  if (slot == null || slot < 0) return false;
+  if (!game.state.chapter) return false;
+  return saveToSlot(game.state, slot);
+}
+
+// 给新 game 挂「章节完成 → 立即自动保存」里程碑
+function wireAutoSave(g) {
+  g.events.on('chapter:end', () => {
+    if (autoSave()) toast('📌 章节里程碑已自动保存', 'gold');
+  });
 }
 
 export function doLoad(slot) {
@@ -98,6 +116,8 @@ export function doLoad(slot) {
   if (!saved) { toast('读取失败'); return; }
   const g = createGame({ savedState: saved });
   setGame(g);
+  uiState.activeSlot = slot; // 读档后自动保存写回该档位
+  wireAutoSave(g);
   // 若无进行中的章节开始过场，直接进地图
   uiState.pendingInterlude = null;
   uiState.pendingNext = null;
@@ -110,6 +130,8 @@ export function doLoad(slot) {
 export function startNewGame(slot) {
   const g = createGame();
   setGame(g);
+  uiState.activeSlot = slot; // 新档自动保存写回所选档位
+  wireAutoSave(g);
   uiState.pendingInterlude = null;
   uiState.pendingNext = null;
   uiState.menuReturn = null;
@@ -119,6 +141,7 @@ export function startNewGame(slot) {
 
 export function backToTitle() {
   setGame(null);
+  uiState.activeSlot = -1; // 回到标题清除当前档位
   uiState.pendingInterlude = null;
   uiState.pendingNext = null;
   uiState.menuReturn = null;
@@ -177,6 +200,9 @@ export function boot() {
   // 对话要求开商店
   // 由 screens 模块内监听
 
+  // 定时自动保存（60 秒），无进行中游戏时静默跳过
+  setInterval(() => autoSave(), 60_000);
+
   showScreen('title');
 }
 
@@ -198,6 +224,7 @@ window.GRPG = Object.assign({}, ACTIONS, COMBAT_ACTIONS, {
   itemStatsText,
   slotLabel,
   doSave,
+  autoSave,
   doLoad,
   startNewGame,
   backToTitle,

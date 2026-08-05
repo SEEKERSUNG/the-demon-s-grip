@@ -120,6 +120,13 @@ base  *= skill.power                 // 普攻 power = 1
   - **注意**：迁移只补中性默认值，不注入内容——开局配装只作用于 `createInitialState` 的新档。
 - `saveToSlot / loadFromSlot / deleteSlot / slotInfo / listSlots`：localStorage `grpg_save_{slot}`。
 
+### 自动保存（UI 层 main.js）
+
+- `uiState.activeSlot` 记录当前存档位：`startNewGame` / `doLoad` / 手动 `doSave` 时设置，`backToTitle` 复位为 -1。
+- `autoSave()`：有进行中的游戏且 `activeSlot ≥ 0` 时写回当前档位，否则静默跳过。
+- 触发：`boot` 启动**每 60 秒**定时保存（静默）；**章节完成**（`chapter:end` 事件，`wireAutoSave` 挂在每个新 game 上）立即保存并 toast 提示。
+- 菜单顶部显示「自动保存开启 · 存档位 N · 上次保存时间」，让玩家感知保存状态。
+
 ## 战斗 UI 返回链（ui/screens.js）
 
 - `uiState.currentScreen` 记录当前屏幕；`uiState.menuReturn` 记录菜单打开时的来源。

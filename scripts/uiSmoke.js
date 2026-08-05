@@ -175,6 +175,14 @@ assert(localStorageMock.store['grpg_save_0'] != null, '存档写入 localStorage
 GRPG.doLoad(0);
 assert(!!GRPG.getGame(), '读档成功');
 
+console.log('\n=== 自动保存 ===');
+GRPG.backToTitle();
+GRPG.startNewGame(1);
+GRPG.autoSave();
+assert(localStorageMock.store['grpg_save_1'] != null, '自动保存写入当前档位');
+GRPG.openMenu();
+assert(app.innerHTML.includes('自动保存开启') && app.innerHTML.includes('存档位 2'), '菜单显示自动保存状态');
+
 console.log('\n=== 读档/关于 返回上一级 ===');
 GRPG.enterRegion('REGION_FISHING');
 GRPG.enterLocation('LOC_VILLAGE');
@@ -194,6 +202,10 @@ assert(app.innerHTML.includes("GRPG.showScreen('title')"), '标题 → 读档返
 GRPG.showScreen('about', { back: 'title' });
 assert(app.innerHTML.includes('关于本游戏'), '标题 → 关于');
 assert(app.innerHTML.includes("GRPG.showScreen('title')"), '标题 → 关于返回指向标题');
+
+console.log('\n=== 自动保存复位 ===');
+GRPG.backToTitle();
+assert(GRPG.autoSave() === false, '回到标题后自动保存跳过（无进行中游戏）');
 
 console.log('\n====================================');
 console.log(`通过 ${passed} 项，失败 ${failed} 项`);
