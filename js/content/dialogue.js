@@ -116,6 +116,16 @@ export const DIALOGUES = [
     n2: { text: '大恩不言谢！这鬼地方，总算有人帮衬一把了。', options: [{ text: '……', to: 'end' }] },
   } },
 
+  { id: 'DLG_MERCHANT_CAMP', start: 'n1', nodes: {
+    n1: { text: '（老万拍拍货担）军需百货，走南闯北就靠它了。营里的兄弟都爱在我这补货。', options: [
+      { text: '看看货', to: 'n_shop' },
+      { text: '打听打听行情', to: 'n2' },
+      { text: '（告辞）', to: 'end' },
+    ] },
+    n_shop: { text: '（老万掀开货担）药水、魔力药水，都是硬通货。', actions: ['shop:SHOP_CAMP'], options: [{ text: '（离开货摊）', to: 'end' }] },
+    n2: { text: '如今打仗，军需紧俏，运一趟货要过三五个关口。不过药水管够——打魔物，光靠血扛可不行。', options: [{ text: '……', to: 'n1' }] },
+  } },
+
   // ================= 第三章 =================
   { id: 'DLG_EMISSARY', start: 'n1', nodes: {
     n1: { text: '王……不，大人。故土的烽火传到了幽都。人类与精灵全面开战，人类已濒临覆灭。', actions: ['quest:Q3_CH3_DISTRESS'], options: [
@@ -155,5 +165,13 @@ export const DIALOGUES = [
       { text: '（告辞）', to: 'end' },
     ] },
     n2: { text: '……哼，还算有点胆色。', options: [{ text: '……', to: 'end' }] },
+  } },
+
+  { id: 'DLG_ELF_MERCHANT', start: 'n1', nodes: {
+    n1: { text: '（薇安浅笑）圣树的果实、魔药的配方，我这儿都有。', options: [
+      { text: '看看货', to: 'n_shop' },
+      { text: '（告辞）', to: 'end' },
+    ] },
+    n_shop: { text: '请随意挑选。', actions: ['shop:SHOP_ELF'], options: [{ text: '（离开商会）', to: 'end' }] },
   } },
 ];

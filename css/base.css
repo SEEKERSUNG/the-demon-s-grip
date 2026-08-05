@@ -39,6 +39,15 @@ html, body {
   flex-direction: column;
 }
 
+/* 链接（关于页的试玩/GitHub 地址） */
+a {
+  color: var(--gold-bright);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
 button {
   font-family: inherit;
   font-size: 1rem;

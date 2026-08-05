@@ -139,6 +139,8 @@ export const SCREENS = {
         <p class="dim small">· 所有道具、NPC、任务、地图、章节均为数据条目，可无限扩展</p>
         <p class="dim small">· 三章主线：渔村夜袭 → 讨伐魔王之路 → 百年之约</p>
         <p class="dim small">· 运行：在游戏目录执行 <code>python3 -m http.server 8000</code>，浏览器打开 localhost:8000</p>
+        <p class="dim small">· 在线试玩：<a href="https://seekersung.github.io/the-demon-s-grip/" target="_blank">seekersung.github.io/the-demon-s-grip</a></p>
+        <p class="dim small">· GitHub：<a href="https://github.com/SEEKERSUNG/the-demon-s-grip" target="_blank">github.com/SEEKERSUNG/the-demon-s-grip</a></p>
       </div>
       ${backBtn(back)}
     </div>`;

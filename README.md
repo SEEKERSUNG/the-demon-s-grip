@@ -1,6 +1,8 @@
 # 执魔 · 浏览器单机 RPG
 
-> **v1.3.0** · 零构建 · 完全数据驱动 · 原生 HTML/CSS/JS + ES Modules
+> **v1.4.0** · 零构建 · 完全数据驱动 · 原生 HTML/CSS/JS + ES Modules
+
+🕹️ **在线试玩**：<https://seekersung.github.io/the-demon-s-grip/>　·　📦 **GitHub**：<https://github.com/SEEKERSUNG/the-demon-s-grip>
 
 魔幻传奇题材的浏览器单机游戏。你从异世穿越而来，在东海渔村生活多年，直到魔潮一夜踏碎故乡——从此踏上讨伐魔王、成为新魔王、再以百万魔军调停三族战争的三章旅程。
 
@@ -76,7 +78,7 @@ doc/                     技术文档（架构 / 数据Schema / 系统 / 扩展 
 ```bash
 npm run check         # 内容引用完整性校验（改内容后必跑）
 npm run playthrough   # 无DOM回放：三章主线端到端断言（26项，含对话路径）
-npm run uiSmoke       # UI冒烟：最小DOM mock 驱动关键交互（42项）
+npm run uiSmoke       # UI冒烟：最小DOM mock 驱动关键交互（44项）
 npm run balance       # 数值平衡：正常玩家+商店补给通关第一章
 ```
 

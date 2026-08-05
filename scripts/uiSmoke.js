@@ -116,6 +116,14 @@ assert(app.innerHTML.includes('战斗'), '战斗屏幕渲染');
 GRPG.cmdAttack(); // 至少执行一次指令不崩溃
 assert(true, '攻击指令执行');
 
+console.log('\n=== 行商（第二章军营）对话开商店 ===');
+GRPG.showScreen('map');
+GRPG.enterLocation('LOC_CAMP');
+GRPG.talk('NPC_MERCHANT_CAMP');
+assert(app.innerHTML.includes('老万'), '行商对话渲染');
+GRPG.chooseDlg(0); // 看看货 → 打开商店
+assert(app.innerHTML.includes('买入') && app.innerHTML.includes('魔力药水'), '行商「看看货」→ 商店打开且有 MP 药');
+
 console.log('\n=== 背包 / 商店 / 任务 / 状态 / 菜单 ===');
 GRPG.showScreen('inventory');
 assert(app.innerHTML.includes('装备栏'), '背包渲染');

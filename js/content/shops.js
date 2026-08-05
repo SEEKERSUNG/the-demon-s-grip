@@ -5,6 +5,7 @@ export const SHOPS = [
   { id: 'SHOP_SMITH', name: '阿伟的铁匠铺', sellRate: 0.5, stock: [
     { item: 'HERB', cost: 8 },
     { item: 'POTION_S', cost: 20 },
+    { item: 'ETHER_S', cost: 40 },
     { item: 'WPN_IRON', cost: 70 },
     { item: 'ARM_LEATHER', cost: 80 },
     { item: 'WPN_STEEL', cost: 220, qty: 1 },
