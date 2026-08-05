@@ -63,8 +63,18 @@ function hudHtml() {
       <div class="bar xp"><div style="width:${pct(p.xp, player.xpNeeded(p.level))}%"></div><span>EXP ${p.xp}/${player.xpNeeded(p.level)}</span></div>
     </div>
     <div class="gold">💰 ${p.gold}</div>
-    <button class="hud-btn" onclick="GRPG.openMenu()">☰ 菜单</button>
   </div>`;
+}
+
+// 统一的顶部导航栏：左侧返回按钮（可隐藏）+ 标题 + 右侧菜单按钮（可隐藏）
+function topNav(backAction, title, showMenu = true) {
+  const backHtml = backAction
+    ? `<button class="nav-back" onclick="${backAction}">← 返回</button>`
+    : '<span class="nav-spacer"></span>';
+  const menuHtml = showMenu
+    ? `<button class="nav-menu" onclick="GRPG.openMenu()">☰ 菜单</button>`
+    : '<span class="nav-spacer"></span>';
+  return `<div class="top-nav">${backHtml}<div class="nav-title">${title}</div>${menuHtml}</div>`;
 }
 
 function backBtn(go) {
@@ -130,8 +140,10 @@ export const SCREENS = {
 
   // ----- 关于 -----
   about({ back = 'title' } = {}) {
+    const inGame = back === 'menu';
     app.innerHTML = `
     <div class="screen">
+      ${inGame ? topNav("GRPG.showScreen('menu')", '❓ 关于') + hudHtml() : ''}
       <div class="panel">
         <div class="panel-title">关于本游戏</div>
         <p>《${GAME_TITLE}》是一款浏览器单机魔幻RPG，采用完全数据驱动架构。</p>
@@ -142,7 +154,7 @@ export const SCREENS = {
         <p class="dim small">· 在线试玩：<a href="https://seekersung.github.io/the-demon-s-grip/" target="_blank">seekersung.github.io/the-demon-s-grip</a></p>
         <p class="dim small">· GitHub：<a href="https://github.com/SEEKERSUNG/the-demon-s-grip" target="_blank">github.com/SEEKERSUNG/the-demon-s-grip</a></p>
       </div>
-      ${backBtn(back)}
+      ${inGame ? '' : backBtn(back)}
     </div>`;
   },
 
@@ -164,8 +176,10 @@ export const SCREENS = {
 
   // ----- 载入存档 -----
   load({ back = 'title' } = {}) {
+    const inGame = back === 'menu';
     app.innerHTML = `
     <div class="screen">
+      ${inGame ? topNav("GRPG.showScreen('menu')", '📂 读档') + hudHtml() : ''}
       <div class="panel">
         <div class="panel-title">载入存档</div>
         ${Array.from({ length: SLOT_COUNT }, (_, i) => {
@@ -178,7 +192,7 @@ export const SCREENS = {
           </div>`;
         }).join('')}
       </div>
-      ${backBtn(back)}
+      ${inGame ? '' : backBtn(back)}
     </div>`;
   },
 
@@ -227,14 +241,14 @@ export const SCREENS = {
     const ch = game.story.currentChapter(game);
     app.innerHTML = `
     <div class="screen map-screen">
+      ${topNav(null, '🗺️ 世界地图')}
       ${hudHtml()}
       <div class="panel">
         <div class="row spread">
           <div>
-            <div class="panel-title" style="border:none;margin:0">🗺️ 世界地图</div>
-            <div class="dim small">当前：第${ch.index}章 · ${esc(ch.title)}</div>
+            <div class="panel-title" style="border:none;margin:0">${ch ? `第${ch.index}章 · ${esc(ch.title)}` : '世界地图'}</div>
           </div>
-          <button onclick="GRPG.showScreen('quests')">📋 任务</button>
+          <button onclick="GRPG.showScreen('quests',{back:'map'})">📋 任务</button>
         </div>
       </div>
       <div class="region-grid">
@@ -260,6 +274,7 @@ export const SCREENS = {
     const r = region;
     app.innerHTML = `
     <div class="screen">
+      ${topNav("GRPG.showScreen('map')", esc(r.name))}
       ${hudHtml()}
       <div class="panel">
         <div class="loc-header">
@@ -291,7 +306,6 @@ export const SCREENS = {
           }).join('')}
         </ul>
       </div>
-      ${backBtn('map')}
     </div>`;
   },
 
@@ -300,6 +314,7 @@ export const SCREENS = {
     const nodes = explore.buildLocationNodes(game, loc);
     app.innerHTML = `
     <div class="screen">
+      ${topNav("GRPG.leaveLocation()", esc(loc.name))}
       ${hudHtml()}
       <div class="panel">
         <div class="loc-header">
@@ -372,10 +387,8 @@ export const SCREENS = {
   menu({ returnTo } = {}) {
     app.innerHTML = `
     <div class="screen">
+      ${topNav("GRPG.backFromMenu()", '☰ 菜单', false)}
       ${hudHtml()}
-      <div class="row" style="margin-bottom:10px">
-        <button onclick="GRPG.backFromMenu()">← 返回游戏</button>
-      </div>
       ${autoSaveStatusHtml()}
       <div class="panel">
         <div class="panel-title">☰ 菜单</div>
@@ -430,6 +443,7 @@ export const SCREENS = {
 
     app.innerHTML = `
     <div class="screen">
+      ${topNav("GRPG.showScreen('menu')", '🎒 背包')}
       ${hudHtml()}
       <div class="tabs">
         <button class="${tab === 'bag' ? 'active' : ''}" onclick="GRPG.showScreen('inventory',{tab:'bag'})">道具 (${bagItems.length})</button>
@@ -443,12 +457,11 @@ export const SCREENS = {
         <div class="panel-title">${tab === 'equip' ? '可装备物品' : '持有物品'}</div>
         <div class="item-grid">${gridHtml || '<div class="dim">（空）</div>'}</div>
       </div>
-      ${backBtn('menu')}
     </div>`;
   },
 
   // ----- 任务日志 -----
-  quests() {
+  quests({ back = 'menu' } = {}) {
     const active = [];
     const done = [];
     for (const q of CONTENT.quests) {
@@ -475,8 +488,10 @@ export const SCREENS = {
       }).join('');
     };
 
+    const backAction = back === 'map' ? "GRPG.showScreen('map')" : "GRPG.showScreen('menu')";
     app.innerHTML = `
     <div class="screen">
+      ${topNav(backAction, '📋 任务')}
       ${hudHtml()}
       <div class="panel">
         <div class="panel-title">进行中的任务</div>
@@ -491,7 +506,6 @@ export const SCREENS = {
         <div class="panel-title">已完成</div>
         ${done.length ? done.map((q) => `<div class="quest-item"><h4><span class="dim">✓</span> ${esc(q.name)}</h4></div>`).join('') : '<div class="dim">（无）</div>'}
       </div>
-      ${backBtn('menu')}
     </div>`;
   },
 
@@ -502,6 +516,7 @@ export const SCREENS = {
     const learned = skList.filter((sk) => !sk.id.startsWith('E_'));
     app.innerHTML = `
     <div class="screen">
+      ${topNav("GRPG.showScreen('menu')", '🧙 状态')}
       ${hudHtml()}
       <div class="panel">
         <div class="panel-title">🧙 ${esc(game.state.player.name)}</div>
@@ -524,7 +539,6 @@ export const SCREENS = {
             </div></li>`).join('') : '<div class="dim">尚未学会任何技能</div>'}
         </div>
       </div>
-      ${backBtn('menu')}
     </div>`;
   },
 
@@ -532,6 +546,7 @@ export const SCREENS = {
   save() {
     app.innerHTML = `
     <div class="screen">
+      ${topNav("GRPG.showScreen('menu')", '💾 存档')}
       ${hudHtml()}
       <div class="panel">
         <div class="panel-title">存档</div>
@@ -541,7 +556,6 @@ export const SCREENS = {
             <button class="primary" onclick="GRPG.doSave(${i})">保存</button>
           </div>`).join('')}
       </div>
-      ${backBtn('menu')}
     </div>`;
   },
 
@@ -555,6 +569,7 @@ export const SCREENS = {
     const sellable = state2.inventory.map((s) => ({ s, def: itemById(s.id) })).filter((x) => x.def && !x.def.quest);
     app.innerHTML = `
     <div class="screen">
+      ${topNav("GRPG.closeShop()", '🏪 ' + esc(shopD.name))}
       ${hudHtml()}
       <div class="panel">
         <div class="panel-title">🏪 ${esc(shopD.name)}</div>
@@ -590,7 +605,6 @@ export const SCREENS = {
           </div>`;
         }).join('') : '<div class="dim">没有可出售的物品</div>'}
       </div>
-      <div class="row"><button onclick="GRPG.closeShop()">← 返回</button></div>
     </div>`;
   },
 

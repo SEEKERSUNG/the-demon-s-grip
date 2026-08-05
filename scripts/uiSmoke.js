@@ -167,7 +167,7 @@ GRPG.enterRegion('REGION_FISHING');
 GRPG.enterLocation('LOC_VILLAGE');
 assert(app.innerHTML.includes('海风渔村'), '进入地点');
 GRPG.openMenu();
-assert(app.innerHTML.includes('返回游戏'), '菜单有返回按钮');
+assert(app.innerHTML.includes('nav-back') && app.innerHTML.includes('菜单'), '菜单有返回按钮');
 GRPG.backFromMenu();
 assert(app.innerHTML.includes('海风渔村'), '菜单返回 → 回到原地点');
 GRPG.openMenu();

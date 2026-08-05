@@ -127,9 +127,35 @@ base  *= skill.power                 // 普攻 power = 1
 - 触发：`boot` 启动**每 60 秒**定时保存（静默）；**章节完成**（`chapter:end` 事件，`wireAutoSave` 挂在每个新 game 上）立即保存并 toast 提示。
 - 菜单顶部显示「自动保存开启 · 存档位 N · 上次保存时间」，让玩家感知保存状态。
 
+## 统一顶部导航栏（ui/screens.js）
+
+v1.4.1 起，所有游戏内屏幕（地图/区域/地点/商店/菜单/背包/任务/状态/存档/读档/关于）使用统一的 **sticky 顶部导航栏**：
+
+- **左侧**「← 返回」按钮：上下文感知，地点→区域、商店→地点、菜单→返回游戏、子屏→菜单。地图页无返回按钮（探索根节点）。
+- **中间**：屏幕标题。
+- **右侧**「☰ 菜单」按钮：菜单页自身不显示菜单按钮。
+
+`topNav(backAction, title, showMenu)` 生成栏 HTML；`backAction` 为 JS 回调字符串（null=不显示）。HUD 不再 sticky，让位于顶部导航栏。
+
+从标题页进入的子屏（读档/关于/新游戏）仍用底部 `backBtn()`——游戏未开始时无需导航栏。
+
+### 各屏幕返回动作
+
+| 屏幕 | 返回目标 | 动作 |
+|---|---|---|
+| 地图 | —（无返回按钮） | 探索根节点 |
+| 区域 | 世界地图 | `showScreen('map')` |
+| 地点 | 所属区域 | `leaveLocation()` |
+| 商店 | 当前地点 | `closeShop()` |
+| 菜单 | 返回游戏 | `backFromMenu()` |
+| 背包/状态/存档 | 菜单 | `showScreen('menu')` |
+| 任务日志 | 菜单/地图（根据 `back` 参数） | `showScreen('menu')` / `showScreen('map')` |
+| 读档/关于（游戏中） | 菜单 | `showScreen('menu')` |
+| 读档/关于/新游戏（标题） | 标题 | 底部 backBtn |
+
 ## 战斗 UI 返回链（ui/screens.js）
 
 - `uiState.currentScreen` 记录当前屏幕；`uiState.menuReturn` 记录菜单打开时的来源。
-- 菜单「← 返回游戏」（`backFromMenu`）回到原地点/区域/地图；二级屏（读档/关于）按 `back` 参数返回上一级。
+- 菜单「← 返回」（`backFromMenu`）回到原地点/区域/地图；二级屏（读档/关于）按 `back` 参数返回上一级。
 - 对话含 `shop:` action 的节点：商店接管屏幕（`chooseDlg`/`dialogue()` 检测 `currentScreen === 'shop'` 后不再渲染对话）。
 - `confirmBackToTitle`：从菜单回标题前弹窗，提示未保存进度 → 「先去存档 / 直接回去 / 取消」。

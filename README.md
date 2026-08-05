@@ -1,6 +1,6 @@
 # 执魔 · 浏览器单机 RPG
 
-> **v1.4.0** · 零构建 · 完全数据驱动 · 原生 HTML/CSS/JS + ES Modules
+> **v1.4.1** · 零构建 · 完全数据驱动 · 原生 HTML/CSS/JS + ES Modules
 
 🕹️ **在线试玩**：<https://seekersung.github.io/the-demon-s-grip/>　·　📦 **GitHub**：<https://github.com/SEEKERSUNG/the-demon-s-grip>
 
