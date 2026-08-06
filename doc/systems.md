@@ -10,8 +10,9 @@
 - `doPlayerAction(game, combat, action)`：`{ type:'attack'|'skill'|'item'|'defend'|'flee', target, skillId, itemId }`。
   - 按速度决定先手：玩家先手则 玩家行动 → 敌人行动；敌人先手反之。
   - 每回合结束 `tickBuffs` 结算增益持续回合。
+- **技能校验**：使用技能须在 `usableSkills(game)`（已学会 + 装备 `skillUnlocks` 解锁）集合内，否则返回「尚未学会」——装备解锁的技能在战斗中可用。
 - 敌方行动：`enemyAction.chooseEnemyAction(enemy)` 从 `ai` 表选技能（`'ATTACK'`=普攻，字符串=指定技能，对象=带 `hpPct` 条件的技能）。
-- **道具使用**：战斗单位 HP/MP 未同步到 state，使用前先把单位值覆盖回 state，结算后再读回——避免误判"HP 已满"。
+- **道具使用**：战斗单位 HP/MP 未同步到 state，使用前先把单位值覆盖回 state，结算后再读回——避免误判"HP 已满"；消耗品在 HP/MP **均已满**时才拒绝使用，且 `effect.hp` 为 0 的 MP 药不因 HP 已满而误拒（防浪费）。
 - **MP 自动回复**：每回合结束时玩家自动回复 MP（仅玩家，敌人不回）。公式 `calcMpRegen(maxMp)` = `2 + floor(maxMp × 0.04)`（至少 1）。低等级 ~2 MP/回合，高等级 ~5 MP/回合，减少对魔力药水的依赖、提高技能使用频率。
 - **胜利结算**（`victory()`）：
   1. `syncPlayerState`（战斗损耗写回 state，升级回满逻辑随后）
@@ -103,6 +104,7 @@ base  *= skill.power                 // 普攻 power = 1
   - `slotFor` 尊重数据 `slot`：饰品 `accessory`/`accessory2` 各归其位（修复过"新装备挤掉旧装备"的问题）。
 - `unequip(game, slot)`：装备回背包（合并计数）。
 - `getEquipBonuses`：汇总所有已装备加成 → `player.getStats`。
+- **背包卡片显示装备效果**：背包可装备物品卡片直接展示该装备的属性加成（`itemStatsText`，UI 层），装备/卸下后实时刷新——玩家无需进装备栏即可对比属性。
 
 ## 旗帜 flags.js
 
