@@ -208,7 +208,8 @@ export const SCREENS = {
       </div>
     </div>`;
     typeText(document.getElementById('story-text'), ch.intro, () => {
-      document.getElementById('btn-continue').style.display = '';
+      const btn = document.getElementById('btn-continue');
+      if (btn) btn.style.display = '';
     });
   },
 
@@ -223,7 +224,8 @@ export const SCREENS = {
       </div>
     </div>`;
     typeText(document.getElementById('story-text'), chapter.interlude, () => {
-      document.getElementById('btn-continue').style.display = '';
+      const btn = document.getElementById('btn-continue');
+      if (btn) btn.style.display = '';
     });
     document.getElementById('btn-continue').onclick = () => {
       if (uiState.pendingNext) {
@@ -651,7 +653,9 @@ function renderDlgView(npcD, view) {
     }
     typeText(el, view.text[lineIdx], () => {
       lineIdx += 1;
-      document.getElementById('dlg-options').innerHTML = `<button disabled>…</button>`;
+      // 屏幕可能已被切换（对话结束/跳转/开商店），防止对已卸载节点写入
+      const opts = document.getElementById('dlg-options');
+      if (opts) opts.innerHTML = `<button disabled>…</button>`;
       setTimeout(printLine, 250);
     });
   };
@@ -681,10 +685,12 @@ function showStoryModal(text, onClose) {
       </div>
     </div>`;
   document.body.appendChild(overlay);
-  typeText(overlay.querySelector('#modal-text'), text, () => {
-    overlay.querySelector('#modal-btn').style.display = '';
+  const modalText = overlay.querySelector('#modal-text');
+  const modalBtn = overlay.querySelector('#modal-btn');
+  typeText(modalText, text, () => {
+    if (modalBtn.isConnected) modalBtn.style.display = '';
   });
-  overlay.querySelector('#modal-btn').onclick = () => { overlay.remove(); onClose && onClose(); };
+  modalBtn.onclick = () => { overlay.remove(); onClose && onClose(); };
 }
 
 // ===== 通用确认弹窗 =====

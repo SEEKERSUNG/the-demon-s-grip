@@ -70,6 +70,7 @@ base  *= skill.power                 // 普攻 power = 1
 - **自动接取的任务首阶段不放 talk**：`unlocks` 链接取的任务没有「对话接取」步骤，接取时不会立即推进 `talk` 目标；若首阶段含 `talk` 目标，玩家回村需**两次**对话才能交还。首阶段应只放 kill/collect/explore 目标。
 - `chooseOption(game, session, i)`：执行选项 `effect`（setFlag / giveItem / removeItem / gold / hp/mp / 接任务），跳转 `to` 节点。
 - `effect` / `cond` 详见 [data-schemas.md](data-schemas.md#对话-dialoguejs)。
+- **打字机回调防御**：`typeText` 的异步回调可能晚于屏幕切换触发（对话结束/跳转/开商店接管屏幕），访问已卸载 DOM 节点会抛错。所有回调内对目标节点做空检查（`if (el)` / `if (btn.isConnected)`），见 `story`/`interlude` 的 `btn-continue`、`renderDlgView` 的 `dlg-options`、`showStoryModal` 的 `modal-btn`。
 
 ## 探索 explore.js
 
