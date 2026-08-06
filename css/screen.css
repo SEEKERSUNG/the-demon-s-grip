@@ -325,3 +325,21 @@
 
 /* ===== 日志抽屉 ===== */
 .log-panel { max-height: 260px; overflow-y: auto; }
+
+/* ===== 底部快捷栏 ===== */
+.bottom-bar {
+  display: flex;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px 10px;
+  position: sticky;
+  bottom: 6px;
+  z-index: 10;
+}
+.bottom-bar button {
+  flex: 1;
+  font-size: .88rem;
+  padding: 10px 6px;
+}

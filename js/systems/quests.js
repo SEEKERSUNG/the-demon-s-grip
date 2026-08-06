@@ -17,7 +17,22 @@ export function questState(state, id) {
 export function acceptQuest(game, quest) {
   const { state } = game;
   if (state.quests[quest.id]) return;
-  state.quests[quest.id] = { stage: 0, status: 'active', counts: {} };
+  const qs = { stage: 0, status: 'active', counts: {} };
+  state.quests[quest.id] = qs;
+  // 预填首阶段 collect 目标：玩家可能已在接取前通过宝箱/事件获得了任务物品
+  const stage0 = quest.stages[0];
+  if (stage0) {
+    stage0.objectives.forEach((ob, oi) => {
+      if (ob.type === 'collect') {
+        const owned = inventory.countItem(state, ob.target);
+        if (owned > 0) {
+          qs.counts[`0:${oi}`] = Math.min(owned, ob.n || 1);
+        }
+      }
+    });
+    // 预填后立即检查阶段是否已满足（例如全 collect 目标都已提前获得）
+    checkStage(game, quest, qs);
+  }
   game.events.emit('quest:accepted', { quest });
 }
 
@@ -62,6 +77,7 @@ export function progressObjective(game, obj) {
 }
 
 // 检查当前阶段目标是否达成，达成则推进
+// collect 目标同步库存计数：即使物品在接取任务前已通过宝箱/事件等获得，也能正确识别
 function checkStage(game, quest, qs) {
   const { state } = game;
   while (qs.status === 'active' && qs.stage < quest.stages.length) {
@@ -69,7 +85,13 @@ function checkStage(game, quest, qs) {
     let complete = true;
     stage.objectives.forEach((ob, oi) => {
       const key = `${qs.stage}:${oi}`;
-      if ((qs.counts[key] || 0) < (ob.n || 1)) complete = false;
+      let cur = qs.counts[key] || 0;
+      // collect 目标：库存计数同时步进，覆盖「接取前已获得物品」场景
+      if (ob.type === 'collect') {
+        const owned = inventory.countItem(state, ob.target);
+        if (owned > cur) { qs.counts[key] = owned; cur = owned; }
+      }
+      if (cur < (ob.n || 1)) complete = false;
     });
     if (!complete) break;
     qs.stage += 1;

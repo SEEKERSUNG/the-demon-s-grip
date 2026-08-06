@@ -20,7 +20,7 @@ import { GAME_VERSION, GAME_TITLE } from '../core/version.js';
 const app = document.getElementById('app');
 
 let game = null;
-export const uiState = { pendingInterlude: null, pendingNext: null, backStack: [], currentScreen: null, menuReturn: null, inventoryTab: 'bag', activeSlot: -1 };
+export const uiState = { pendingInterlude: null, pendingNext: null, backStack: [], currentScreen: null, menuReturn: null, inventoryTab: 'bag', activeSlot: -1, quickReturn: null };
 
 export function setGame(g) { game = g; if (g) wireGameEvents(g); }
 export function getGame() { return game; }
@@ -116,6 +116,16 @@ function locLockReason(loc) {
     if (!qs) return '需先接取相关任务';
   }
   return null;
+}
+
+// ===== 底部快捷栏 =====
+function bottomBar() {
+  return `
+  <div class="bottom-bar">
+    <button onclick="GRPG.openQuests()">📋 任务</button>
+    <button onclick="GRPG.openInventory()">🎒 背包</button>
+    <button onclick="GRPG.openStatus()">🧙 状态</button>
+  </div>`;
 }
 
 // ===== 屏幕实现 =====
@@ -268,6 +278,7 @@ export const SCREENS = {
         <div class="panel-title">冒险日志</div>
         <div class="log-line dim">讨伐魔物 ${game.state.battlesWon} 场 · 已探索 ${game.state.visitedLocations.length} 处地点</div>
       </div>
+      ${bottomBar()}
     </div>`;
   },
 
@@ -308,6 +319,7 @@ export const SCREENS = {
           }).join('')}
         </ul>
       </div>
+      ${bottomBar()}
     </div>`;
   },
 
@@ -365,6 +377,7 @@ export const SCREENS = {
           }).join('')}
         </ul>
       </div>
+      ${bottomBar()}
     </div>`;
   },
 
@@ -409,7 +422,7 @@ export const SCREENS = {
   },
 
   // ----- 背包 -----
-  inventory({ tab = 'bag' } = {}) {
+  inventory({ tab = 'bag', back = 'menu' } = {}) {
     uiState.inventoryTab = tab;
     const items = game.state.inventory;
     const eq = game.state.player.equipped;
@@ -432,8 +445,6 @@ export const SCREENS = {
     const gridHtml = (tab === 'equip' ? eqItems : bagItems).map(({ slot, def }) => {
       const click = def.usable ? `onclick="GRPG.useItem('${def.id}')"` : (def.slot ? `onclick="GRPG.equipItem('${def.id}')"` : '');
       const clickDesc = def.usable ? '点击使用' : (def.slot ? '点击装备' : '');
-      const sellPrice = def.sellPrice ?? Math.floor((def.price || 0) * 0.5);
-      const sellBtn = def.quest ? '' : `<button class="sell-btn" onclick="event.stopPropagation();GRPG.sellItem('${def.id}')">💰 卖 ${sellPrice}</button>`;
       const stats = itemStatsText(def); // 装备属性加成 / 消耗品恢复效果
       return `
       <div class="item-card rarity-${def.rarity}" ${click}>
@@ -441,13 +452,12 @@ export const SCREENS = {
         <div class="i-name">${esc(def.name)}</div>
         <div class="i-qty">×${slot.qty}${clickDesc ? ` · ${clickDesc}` : ''}</div>
         ${stats ? `<div class="i-stats">${esc(stats)}</div>` : ''}
-        ${sellBtn}
       </div>`;
     }).join('');
 
     app.innerHTML = `
     <div class="screen">
-      ${topNav("GRPG.showScreen('menu')", '🎒 背包')}
+      ${topNav(back === 'quick' ? "GRPG.quickBack()" : "GRPG.showScreen('menu')", '🎒 背包')}
       ${hudHtml()}
       <div class="tabs">
         <button class="${tab === 'bag' ? 'active' : ''}" onclick="GRPG.showScreen('inventory',{tab:'bag'})">道具 (${bagItems.length})</button>
@@ -492,7 +502,7 @@ export const SCREENS = {
       }).join('');
     };
 
-    const backAction = back === 'map' ? "GRPG.showScreen('map')" : "GRPG.showScreen('menu')";
+    const backAction = back === 'map' ? "GRPG.showScreen('map')" : back === 'quick' ? "GRPG.quickBack()" : "GRPG.showScreen('menu')";
     app.innerHTML = `
     <div class="screen">
       ${topNav(backAction, '📋 任务')}
@@ -514,13 +524,13 @@ export const SCREENS = {
   },
 
   // ----- 状态 -----
-  status() {
+  status({ back = 'menu' } = {}) {
     const s = player.getStats(game.state, CONTENT.items);
     const skList = skills.usableSkills(game);
     const learned = skList.filter((sk) => !sk.id.startsWith('E_'));
     app.innerHTML = `
     <div class="screen">
-      ${topNav("GRPG.showScreen('menu')", '🧙 状态')}
+      ${topNav(back === 'quick' ? "GRPG.quickBack()" : "GRPG.showScreen('menu')", '🧙 状态')}
       ${hudHtml()}
       <div class="panel">
         <div class="panel-title">🧙 ${esc(game.state.player.name)}</div>
@@ -722,6 +732,29 @@ export function confirmBackToTitle() {
   ]);
 }
 
+// ===== 快捷导航（底部栏 → 子页面 → 直接返回游戏）=====
+function openQuick(screenName) {
+  const g = getGame();
+  if (g?.state.location) {
+    uiState.quickReturn = { screen: 'location', ctx: { loc: locById(g.state.location) } };
+  } else if (g?.state.region) {
+    uiState.quickReturn = { screen: 'region', ctx: { region: regionById(g.state.region) } };
+  } else {
+    uiState.quickReturn = { screen: 'map', ctx: {} };
+  }
+  showScreen(screenName, { back: 'quick' });
+}
+
+export function openQuests() { openQuick('quests'); }
+export function openInventory() { openQuick('inventory'); }
+export function openStatus() { openQuick('status'); }
+
+export function quickBack() {
+  const r = uiState.quickReturn || { screen: 'map', ctx: {} };
+  uiState.quickReturn = null;
+  showScreen(r.screen, r.ctx || {});
+}
+
 // ===== 全局动作（由 main.js 统一挂到 GRPG）=====
 export function continueLast() {
   const slots = listSlots().sort((a, b) => b.savedAt - a.savedAt);
@@ -840,14 +873,6 @@ export function useItem(id) {
   toast(res.ok ? res.msg : res.msg);
   showScreen('inventory', { tab: uiState.inventoryTab || 'bag' });
 }
-
-// 背包里直接卖出（按标准半价，与商店一致）
-export function sellItem(itemId) {
-  const res = shop.sell(game, itemId, 1);
-  toast(res.ok ? '✅ ' + res.msg : '❌ ' + res.msg, res.ok ? 'gold' : '');
-  showScreen('inventory', { tab: uiState.inventoryTab || 'bag' });
-}
-
 export function equipItem(id) {
   equipment.equipItem(game, id);
   toast('已装备');
@@ -900,6 +925,7 @@ export function respawn() {
 
 export const ACTIONS = {
   continueLast, enterRegion, enterLocation, leaveLocation, startBattle, openChest,
-  triggerEvent, talk, chooseDlg, closeDialogue, goToMap, useItem, equipItem, unequip, sellItem,
+  triggerEvent, talk, chooseDlg, closeDialogue, goToMap, useItem, equipItem, unequip,
   buy, sell, respawn, backFromMenu, closeShop, confirmBackToTitle,
+  openQuests, openInventory, openStatus, quickBack,
 };

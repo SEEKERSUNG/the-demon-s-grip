@@ -164,6 +164,7 @@ export function openMenu() {
     returnTo = uiState.menuReturn || { screen: 'map', ctx: {} };
   }
   uiState.menuReturn = returnTo;
+  uiState.quickReturn = null; // 从菜单进入子页面时不走快捷返回路径
   showScreen('menu');
 }
 

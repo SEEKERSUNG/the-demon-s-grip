@@ -95,7 +95,8 @@ base  *= skill.power                 // 普攻 power = 1
 - `stockView(game, shop)`：合并已售数量，返回 `remaining`（`qty: null`=无限）。
 - `buy(game, shop, itemId, qty)`：校验库存/金币/等级需求 → 扣金币 → `addItem` → 记已售。
 - `sell(game, itemId, qty)`：任务道具不可卖；价格 = `sellPrice ?? price × 0.5`；`removeItem` → 加金币。
-- **背包直售**：UI 物品卡片「💰 卖」按钮直接调 `shop.sell`（标准半价），无需进商店。
+- **商店交易**：物品只能通过商店卖出（`shop.sell`），背包不再提供直售按钮；商店买/卖、旅店恢复。
+- 商店买入校验库存/金币/等级需求；任务道具不可出售。
 
 ## 装备 equipment.js
 
@@ -164,3 +165,16 @@ v1.4.1 起，所有游戏内屏幕（地图/区域/地点/商店/菜单/背包/�
 - 菜单「← 返回」（`backFromMenu`）回到原地点/区域/地图；二级屏（读档/关于）按 `back` 参数返回上一级。
 - 对话含 `shop:` action 的节点：商店接管屏幕（`chooseDlg`/`dialogue()` 检测 `currentScreen === 'shop'` 后不再渲染对话）。
 - `confirmBackToTitle`：从菜单回标题前弹窗，提示未保存进度 → 「先去存档 / 直接回去 / 取消」。
+
+## 底部快捷栏（v1.5.0）
+
+v1.5.0 起，地图/区域/地点三个核心游戏屏幕底部增加 sticky 快捷导航栏：
+
+- **三板钮**：📋 任务 · 🎒 背包 · 🧙 状态，点击直接进入子页面。
+- **快捷返回**：从快捷栏进入的子页面，返回按钮直接回到游戏画面（`uiState.quickReturn`），跳过菜单。
+- **菜单不受影响**：从菜单进入的子页面仍走「菜单→子页→菜单→游戏」原有路径（`openMenu` 清空 `quickReturn`）。
+
+## 任务物品预填（v1.5.0）
+
+- `acceptQuest` 接取时扫描首阶段 `collect` 目标，预填背包中已有物品的计数，随后立即 `checkStage`。
+- `checkStage` 对 `collect` 目标**同步库存计数**——即使物品在接取前通过宝箱/事件获得，或已有存档中任务已 active 但 count 为 0，均能在下一轮 `progressObjective`（或其他目标推进）触发时正确识别并推进阶段。彻底消除「提前拿任务物品 → 接取后无法提交」的卡关问题。

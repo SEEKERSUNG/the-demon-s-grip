@@ -136,7 +136,7 @@ assert(app.innerHTML.includes('攻击'), '状态面板渲染');
 GRPG.openMenu();
 assert(app.innerHTML.includes('☰ 菜单'), '菜单渲染');
 
-console.log('\n=== 装备槽 / 背包卖出 ===');
+console.log('\n=== 装备槽 ===');
 {
   const g = GRPG.getGame();
   g.state.player.level = 12; // 满足金戒指(Lv4)与影之披风(Lv12)的等级需求
@@ -173,12 +173,8 @@ console.log('\n=== 装备槽 / 背包卖出 ===');
   assert(countOf('WPN_IRON') === 2, '卸下武器回背包合并计数');
   assert(g.state.inventory.filter((s) => s.id === 'WPN_IRON').length === 1, '卸下武器不产生重复条目');
 
-  const herbQty = g.state.inventory.find((s) => s.id === 'HERB')?.qty || 0;
-  const goldBefore = g.state.player.gold;
-  GRPG.sellItem('HERB');
-  const herbAfter = g.state.inventory.find((s) => s.id === 'HERB')?.qty || 0;
-  assert(herbAfter === herbQty - 1, '背包卖出：草药减一');
-  assert(g.state.player.gold === goldBefore + 4, '背包卖出：获得半价金币');
+  // 背包卖出已移除——物品只能通过商店卖出（商店测试覆盖卖功能）
+  console.log('  ✓ 背包卖出已改为仅商店可卖');
 }
 
 console.log('\n=== 回到标题确认 ===');
