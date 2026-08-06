@@ -98,9 +98,10 @@ base  *= skill.power                 // 普攻 power = 1
 ## 装备 equipment.js
 
 - 槽位：`SLOTS = ['weapon', 'armor', 'accessory', 'accessory2']`。
-- `equipItem(game, itemId)`：按 `slotFor` 确定槽位；校验 `levelReq`（等级不足拒绝）；原装备**退回背包**；从背包扣除一件新装备。
+- `equipItem(game, itemId)`：按 `slotFor` 确定槽位；校验 `levelReq`（等级不足拒绝）；已装备同款直接返回（不误扣背包）；原装备**退回背包并合并计数**；从背包扣除一件新装备。
+  - 退回旧装备用合并计数而非 push 新条目，避免同物品拆成多个条目（修复过"换装后突然多一个"）。
   - `slotFor` 尊重数据 `slot`：饰品 `accessory`/`accessory2` 各归其位（修复过"新装备挤掉旧装备"的问题）。
-- `unequip(game, slot)`：装备回背包。
+- `unequip(game, slot)`：装备回背包（合并计数）。
 - `getEquipBonuses`：汇总所有已装备加成 → `player.getStats`。
 
 ## 旗帜 flags.js

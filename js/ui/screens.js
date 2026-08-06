@@ -432,11 +432,13 @@ export const SCREENS = {
       const clickDesc = def.usable ? '点击使用' : (def.slot ? '点击装备' : '');
       const sellPrice = def.sellPrice ?? Math.floor((def.price || 0) * 0.5);
       const sellBtn = def.quest ? '' : `<button class="sell-btn" onclick="event.stopPropagation();GRPG.sellItem('${def.id}')">💰 卖 ${sellPrice}</button>`;
+      const stats = itemStatsText(def); // 装备属性加成 / 消耗品恢复效果
       return `
       <div class="item-card rarity-${def.rarity}" ${click}>
         <div class="i-emoji">${def.emoji}</div>
         <div class="i-name">${esc(def.name)}</div>
         <div class="i-qty">×${slot.qty}${clickDesc ? ` · ${clickDesc}` : ''}</div>
+        ${stats ? `<div class="i-stats">${esc(stats)}</div>` : ''}
         ${sellBtn}
       </div>`;
     }).join('');

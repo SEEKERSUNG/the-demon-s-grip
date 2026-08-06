@@ -31,6 +31,14 @@ export function slotFor(item) {
   return null;
 }
 
+// 背包内增加计数（合并到已有条目，避免同物品拆成多行）。
+// 不用 inventory.js 的 addItem，避免 inventory → player → equipment 循环依赖。
+function addToInventory(state, itemId, qty) {
+  const slot = state.inventory.find((s) => s.id === itemId);
+  if (slot) slot.qty += qty;
+  else state.inventory.push({ id: itemId, qty });
+}
+
 export function equipItem(game, itemId) {
   const { state } = game;
   const item = game.CONTENT.items.find((x) => x.id === itemId);
@@ -38,10 +46,12 @@ export function equipItem(game, itemId) {
   if (item.levelReq && game.state.player.level < item.levelReq) return false;
   const slot = slotFor(item);
   const prev = state.player.equipped[slot];
+  // 已装备同一件 → 无需操作（避免误扣背包里的同款）
+  if (prev === itemId) return false;
   state.player.equipped[slot] = itemId;
-  if (prev && prev !== itemId) {
-    state.inventory.push({ id: prev, qty: 1 });
-  }
+  // 原装备退回背包（合并计数，不产生重复条目）
+  if (prev) addToInventory(state, prev, 1);
+  // 从背包扣除一件新装备
   const idx = state.inventory.findIndex((s) => s.id === itemId && s.qty > 0);
   if (idx >= 0) {
     state.inventory[idx].qty -= 1;
@@ -57,7 +67,7 @@ export function unequip(game, slot) {
   const id = state.player.equipped[slot];
   if (!id) return;
   state.player.equipped[slot] = null;
-  state.inventory.push({ id, qty: 1 });
+  addToInventory(state, id, 1);
   game.events.emit('inventory:changed');
   game.events.emit('player:changed', { reason: 'unequip' });
 }

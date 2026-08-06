@@ -149,6 +149,30 @@ console.log('\n=== 装备槽 / 背包卖出 ===');
   assert(g.state.player.equipped.accessory === 'ACC_RING_GOLD', '换饰品：金戒指仍在饰品槽');
   assert(g.state.player.equipped.accessory2 === 'ACC_MANTLE', '影之披风进入饰品2槽');
 
+  const countOf = (id) => g.state.inventory.filter((s) => s.id === id).reduce((n, s) => n + s.qty, 0);
+  // 已装备同款再点 → 不吞背包同款（回归：同一装备再次装备消失合并）
+  const ringBefore = countOf('ACC_RING_GOLD');
+  const ringEquipRes = g.equipment.equipItem(g, 'ACC_RING_GOLD');
+  assert(ringEquipRes === false, '已装备同款再装备被拒绝');
+  assert(countOf('ACC_RING_GOLD') === ringBefore, '已装备同款再点不吞背包');
+  assert(g.state.inventory.filter((s) => s.id === 'ACC_RING_GOLD').length <= 1, '背包同物品不拆成重复条目');
+
+  // 换装退回旧装备合并计数（回归：换装后突然多一个）
+  g.inventory.addItem(g, 'WPN_RUSTY', 1); // 背包已有 1 把生锈短剑（额外一把）
+  const rustyBefore = countOf('WPN_RUSTY');
+  g.shop.buy(g, smith, 'WPN_IRON', 1);
+  GRPG.equipItem('WPN_IRON'); // 换上铁剑 → 生锈短剑退回背包
+  assert(g.state.player.equipped.weapon === 'WPN_IRON', '换上铁剑成功');
+  assert(countOf('WPN_RUSTY') === rustyBefore + 1, '换装退回旧武器且合并计数');
+  assert(g.state.inventory.filter((s) => s.id === 'WPN_RUSTY').length === 1, '换装退回不产生重复条目');
+
+  // 卸下 → 回背包合并计数
+  g.shop.buy(g, smith, 'WPN_IRON', 1); // 背包再有 1 把铁剑
+  GRPG.unequip('weapon'); // 卸下铁剑 → 回背包合并
+  assert(g.state.player.equipped.weapon === null, '卸下武器后槽位为空');
+  assert(countOf('WPN_IRON') === 2, '卸下武器回背包合并计数');
+  assert(g.state.inventory.filter((s) => s.id === 'WPN_IRON').length === 1, '卸下武器不产生重复条目');
+
   const herbQty = g.state.inventory.find((s) => s.id === 'HERB')?.qty || 0;
   const goldBefore = g.state.player.gold;
   GRPG.sellItem('HERB');

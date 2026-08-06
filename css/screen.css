@@ -227,6 +227,7 @@
 .item-card .i-emoji { font-size: 1.9rem; }
 .item-card .i-name { font-size: .85rem; margin-top: 4px; }
 .item-card .i-qty { color: var(--text-dim); font-size: .8rem; }
+.item-card .i-stats { color: var(--ok); font-size: .72rem; margin-top: 2px; line-height: 1.4; }
 .item-card .sell-btn {
   margin-top: 8px;
   width: 100%;
