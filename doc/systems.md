@@ -12,6 +12,7 @@
   - 每回合结束 `tickBuffs` 结算增益持续回合。
 - 敌方行动：`enemyAction.chooseEnemyAction(enemy)` 从 `ai` 表选技能（`'ATTACK'`=普攻，字符串=指定技能，对象=带 `hpPct` 条件的技能）。
 - **道具使用**：战斗单位 HP/MP 未同步到 state，使用前先把单位值覆盖回 state，结算后再读回——避免误判"HP 已满"。
+- **MP 自动回复**：每回合结束时玩家自动回复 MP（仅玩家，敌人不回）。公式 `calcMpRegen(maxMp)` = `2 + floor(maxMp × 0.04)`（至少 1）。低等级 ~2 MP/回合，高等级 ~5 MP/回合，减少对魔力药水的依赖、提高技能使用频率。
 - **胜利结算**（`victory()`）：
   1. `syncPlayerState`（战斗损耗写回 state，升级回满逻辑随后）
   2. 掉落（BOSS 额外掉落 `context.bossDrops`）

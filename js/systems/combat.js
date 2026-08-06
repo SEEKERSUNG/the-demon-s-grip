@@ -3,7 +3,7 @@
 
 import { getSkill } from './skills.js';
 import { playerUnit } from './skills.js';
-import { rollDamage, rollHeal } from './stats.js';
+import { rollDamage, rollHeal, calcMpRegen } from './stats.js';
 import { chooseEnemyAction } from './enemyAction.js';
 import { rollDrops, mergeLoot, grantLoot } from './loot.js';
 import * as player from './player.js';
@@ -99,6 +99,9 @@ export function doPlayerAction(game, combat, action) {
 
   if (combat.phase === 'player') {
     combat.turn += 1;
+    // 每回合自动回复 MP（仅玩家）
+    const regen = calcMpRegen(combat.playerUnit.stats.maxMp);
+    combat.playerUnit.curMp = Math.min(combat.playerUnit.stats.maxMp, combat.playerUnit.curMp + regen);
     tickBuffs(combat.playerUnit);
     combat.enemies.forEach((e) => { if (e.alive) tickBuffs(e); });
   }

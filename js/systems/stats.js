@@ -1,5 +1,11 @@
 // 伤害/命中的唯一权威公式。
 
+// 每回合 MP 自动回复量（仅玩家）。
+// 公式：2 + 最大MP的4%，至少 1 点。
+export function calcMpRegen(maxMp) {
+  return Math.max(1, 2 + Math.floor(maxMp * 0.04));
+}
+
 // 返回 { damage, hit, crit, miss }
 export function rollDamage(attacker, defender, skill, rng) {
   const a = attacker.stats;

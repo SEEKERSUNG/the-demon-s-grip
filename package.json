@@ -1,6 +1,6 @@
 {
   "name": "grpg",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "执魔 - 浏览器单机RPG",
   "type": "module",
   "scripts": {
