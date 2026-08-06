@@ -208,9 +208,9 @@ console.log('\n=== 自动保存 ===');
 GRPG.backToTitle();
 GRPG.startNewGame(1);
 GRPG.autoSave();
-assert(localStorageMock.store['grpg_save_1'] != null, '自动保存写入当前档位');
+assert(localStorageMock.store['grpg_autosave'] != null, '自动保存写入独立槽位');
 GRPG.openMenu();
-assert(app.innerHTML.includes('自动保存开启') && app.innerHTML.includes('存档位 2'), '菜单显示自动保存状态');
+assert(app.innerHTML.includes('自动保存') && app.innerHTML.includes('独立槽位'), '菜单显示自动保存状态');
 
 console.log('\n=== 读档/关于 返回上一级 ===');
 GRPG.enterRegion('REGION_FISHING');

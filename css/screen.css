@@ -307,8 +307,12 @@
   padding: 12px 14px;
   margin-bottom: 8px;
 }
+.save-slot.auto { border-color: var(--ok); background: #131e18; }
 .save-slot .slot-info { flex: 1; }
 .save-slot .slot-time { color: var(--text-dim); font-size: .82rem; }
+.save-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.save-actions button { font-size: .8rem; padding: 4px 10px; }
+.auto-save-badge { color: var(--ok); font-size: .75rem; margin-left: 6px; }
 
 /* ===== 团灭 ===== */
 .gameover {

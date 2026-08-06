@@ -2,7 +2,7 @@
 // 战斗屏幕见 combatScreen.js。
 
 import { CONTENT } from '../content/index.js';
-import { saveToSlot, loadFromSlot, listSlots, slotInfo, SLOT_COUNT, deleteSlot } from '../core/save.js';
+import { saveToSlot, loadFromSlot, listSlots, slotInfo, SLOT_COUNT, deleteSlot, saveAutoSlot, loadAutoSlot, autoSlotInfo, deleteAutoSlot, exportSaveData, importSaveData, importSaveToSlot } from '../core/save.js';
 import * as player from '../systems/player.js';
 import * as inventory from '../systems/inventory.js';
 import * as equipment from '../systems/equipment.js';
@@ -14,7 +14,7 @@ import * as dialogue from '../systems/dialogue.js';
 import * as shop from '../systems/shop.js';
 import * as npc from '../systems/npc.js';
 import { EVENTS } from '../core/events.js';
-import { esc, itemById, skillById, locById, regionById, questById, npcById, pct, toast, rarityText, itemStatsText, slotLabel, doSave, doLoad, startNewGame, backToTitle, openMenu, afterCombatReturn } from './main.js';
+import { esc, itemById, skillById, locById, regionById, questById, npcById, pct, toast, rarityText, itemStatsText, slotLabel, doSave, doLoad, startNewGame, backToTitle, openMenu, afterCombatReturn, loadAutoSave } from './main.js';
 import { GAME_VERSION, GAME_TITLE } from '../core/version.js';
 
 const app = document.getElementById('app');
@@ -83,12 +83,19 @@ function backBtn(go) {
 
 // 菜单里的自动保存状态行（玩家感知自动保存是否生效）
 function autoSaveStatusHtml() {
-  const as = uiState.activeSlot;
-  const info = as >= 0 ? slotInfo(as) : null;
+  const info = autoSlotInfo();
   if (!info) return '<div class="small dim" style="margin:0 0 10px">💾 自动保存未开启——新开档或读档后自动开启</div>';
   const d = new Date(info.savedAt);
   const t = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`;
-  return `<div class="small dim" style="margin:0 0 10px">💾 自动保存开启 · 存档位 ${as + 1} · 上次保存 ${t}</div>`;
+  return `<div class="small dim" style="margin:0 0 10px">💾 自动保存 · 独立槽位 · 上次 ${t}</div>`;
+}
+
+function formatAutoSaveTime(info) {
+  if (!info) return '';
+  const d = new Date(info.savedAt);
+  const t = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const ch = ['', '第一章·渔村夜袭', '第二章·讨伐魔王之路', '第三章·百年之约'][info.chapter] || `第${info.chapter}章`;
+  return `Lv.${info.level} ${info.name} · ${ch} · ${t}`;
 }
 
 function typeText(el, text, onDone) {
@@ -132,7 +139,7 @@ function bottomBar() {
 export const SCREENS = {
   // ----- 标题 -----
   title() {
-    const hasSave = listSlots().length > 0;
+    const hasSave = listSlots().length > 0 || autoSlotInfo() != null;
     app.innerHTML = `
     <div class="title-screen">
       <div class="sub">魔 幻 传 奇 · 单 机 RPG</div>
@@ -187,11 +194,23 @@ export const SCREENS = {
   // ----- 载入存档 -----
   load({ back = 'title' } = {}) {
     const inGame = back === 'menu';
+    const autoInfo = autoSlotInfo();
+    const autoHtml = autoInfo
+      ? `<div class="save-slot auto">
+          <div class="slot-info"><b>🔄 自动存档</b><span class="auto-save-badge">（独立槽位）</span><br><span class="slot-time">${formatAutoSaveTime(autoInfo)}</span></div>
+          <div class="save-actions">
+            <button class="primary" onclick="GRPG.loadAutoSave()">读取</button>
+            <button class="danger" onclick="GRPG.deleteAutoSlot();GRPG.showScreen('load',{back:'${back}'})">删除</button>
+          </div>
+        </div>`
+      : '<div class="save-slot"><div class="slot-info"><b>🔄 自动存档</b><br><span class="slot-time dim">暂无自动存档</span></div></div>';
+
     app.innerHTML = `
     <div class="screen">
       ${inGame ? topNav("GRPG.showScreen('menu')", '📂 读档') + hudHtml() : ''}
       <div class="panel">
         <div class="panel-title">载入存档</div>
+        ${autoHtml}
         ${Array.from({ length: SLOT_COUNT }, (_, i) => {
           const info = slotInfo(i);
           return `
@@ -558,17 +577,46 @@ export const SCREENS = {
 
   // ----- 存档 -----
   save() {
+    const autoInfo = autoSlotInfo();
+    const autoHtml = autoInfo
+      ? `<div class="save-slot auto">
+          <div class="slot-info"><b>🔄 自动存档</b><span class="auto-save-badge">（独立槽位）</span><br><span class="slot-time">${formatAutoSaveTime(autoInfo)}</span></div>
+          <div class="save-actions">
+            <button class="gold" onclick="GRPG.downloadSave('auto')">📥 导出</button>
+            <button class="danger" onclick="GRPG.deleteAutoSlot();GRPG.showScreen('save')">删除</button>
+          </div>
+        </div>`
+      : '<div class="save-slot"><div class="slot-info"><b>🔄 自动存档</b><br><span class="slot-time dim">暂无自动存档（新开档或读档后自动开启）</span></div></div>';
+
     app.innerHTML = `
     <div class="screen">
       ${topNav("GRPG.showScreen('menu')", '💾 存档')}
       ${hudHtml()}
       <div class="panel">
-        <div class="panel-title">存档</div>
-        ${Array.from({ length: SLOT_COUNT }, (_, i) => `
+        <div class="panel-title">🔄 自动存档</div>
+        ${autoHtml}
+      </div>
+      <div class="panel">
+        <div class="panel-title">💾 手动存档</div>
+        ${Array.from({ length: SLOT_COUNT }, (_, i) => {
+          const info = slotInfo(i);
+          return `
           <div class="save-slot">
             <div class="slot-info"><b>存档位 ${i + 1}</b><br><span class="slot-time">${slotLabel(i)}</span></div>
-            <button class="primary" onclick="GRPG.doSave(${i})">保存</button>
-          </div>`).join('')}
+            <div class="save-actions">
+              <button class="primary" onclick="GRPG.doSave(${i})">保存</button>
+              ${info ? `<button class="gold" onclick="GRPG.downloadSave(${i})">📥 导出</button>` : ''}
+              ${info ? `<button class="danger" onclick="GRPG.deleteSlot(${i});GRPG.showScreen('save')">删除</button>` : ''}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="panel">
+        <div class="panel-title">📥 导入存档</div>
+        <div class="save-slot">
+          <div class="slot-info"><span class="dim">从文件中导入存档（JSON 格式）</span></div>
+          <button class="primary" onclick="GRPG.importSave()">📂 选择文件</button>
+        </div>
       </div>
     </div>`;
   },
@@ -757,6 +805,9 @@ export function quickBack() {
 
 // ===== 全局动作（由 main.js 统一挂到 GRPG）=====
 export function continueLast() {
+  // 优先尝试自动存档（最新进度），无自动存档时取最晚手动存档
+  const auto = autoSlotInfo();
+  if (auto) { loadAutoSave(); return; }
   const slots = listSlots().sort((a, b) => b.savedAt - a.savedAt);
   if (slots.length) doLoad(slots[0].slot);
 }
@@ -923,9 +974,71 @@ export function respawn() {
   showScreen('location', { loc: locById(game.state.location) });
 }
 
+// ===== 存档导出/导入 =====
+export function downloadSave(slot) {
+  const result = exportSaveData(slot);
+  if (!result) { toast('⚠️ 存档为空，无法导出'); return; }
+  try {
+    const blob = new Blob([result.json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = result.filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('✅ 存档已导出：' + result.filename, 'gold');
+  } catch (e) {
+    toast('⚠️ 导出失败');
+    console.error('导出失败', e);
+  }
+}
+
+export function importSave() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.style.display = 'none';
+  document.body.appendChild(input);
+  input.onchange = () => {
+    const file = input.files?.[0];
+    if (!file) { document.body.removeChild(input); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = importSaveData(reader.result);
+      if (!result.ok) {
+        toast('⚠️ ' + result.error);
+        document.body.removeChild(input);
+        return;
+      }
+      // 查找空闲槽位
+      let targetSlot = -1;
+      for (let i = 0; i < SLOT_COUNT; i++) {
+        if (!slotInfo(i)) { targetSlot = i; break; }
+      }
+      if (targetSlot < 0) {
+        toast('⚠️ 所有存档位已满，请先删除一个存档');
+        document.body.removeChild(input);
+        return;
+      }
+      if (importSaveToSlot(result.state, result.savedAt, targetSlot)) {
+        toast(`✅ 已导入到存档位 ${targetSlot + 1}`, 'gold');
+        showScreen('load', { back: 'menu' });
+      } else {
+        toast('⚠️ 导入失败：写入出错');
+      }
+      document.body.removeChild(input);
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
 export const ACTIONS = {
   continueLast, enterRegion, enterLocation, leaveLocation, startBattle, openChest,
   triggerEvent, talk, chooseDlg, closeDialogue, goToMap, useItem, equipItem, unequip,
   buy, sell, respawn, backFromMenu, closeShop, confirmBackToTitle,
   openQuests, openInventory, openStatus, quickBack,
+  downloadSave, importSave, loadAutoSave,
 };

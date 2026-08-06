@@ -3,7 +3,7 @@
 import { CONTENT } from '../content/index.js';
 import { validateContent } from '../core/validate.js';
 import { createGame } from '../core/game.js';
-import { saveToSlot, loadFromSlot, listSlots, slotInfo, SLOT_COUNT, deleteSlot } from '../core/save.js';
+import { saveToSlot, loadFromSlot, listSlots, slotInfo, SLOT_COUNT, deleteSlot, saveAutoSlot, loadAutoSlot, autoSlotInfo, deleteAutoSlot, exportSaveData, importSaveData, importSaveToSlot } from '../core/save.js';
 import * as player from '../systems/player.js';
 import { SCREENS, showScreen, setGame, getGame, uiState, ACTIONS } from './screens.js';
 import { renderCombatScreen, ACTIONS as COMBAT_ACTIONS } from './combatScreen.js';
@@ -94,14 +94,26 @@ export function doSave(slot) {
   toast(ok ? `已保存到存档位 ${slot + 1}` : '⚠️ 存档失败：浏览器存储不可用', ok ? 'gold' : '');
 }
 
-// 自动保存：写到当前存档位（新开档/读档后开启）。静默失败，无游戏/无档位/未开始章节时跳过。
+// 自动保存：写入独立自动存档槽位（不覆盖玩家手动存档）。静默失败，无游戏/未开始章节时跳过。
 export function autoSave() {
   const game = getGame();
   if (!game) return false;
-  const slot = uiState.activeSlot;
-  if (slot == null || slot < 0) return false;
   if (!game.state.chapter) return false;
-  return saveToSlot(game.state, slot);
+  return saveAutoSlot(game.state);
+}
+
+// 读取自动存档（供标题"继续"按钮和读档界面使用）
+export function loadAutoSave() {
+  const saved = loadAutoSlot();
+  if (!saved) return null;
+  const g = createGame({ savedState: saved });
+  setGame(g);
+  wireAutoSave(g);
+  uiState.quickReturn = null;
+  const loc = g.state.location ? locById(g.state.location) : null;
+  if (loc) showScreen('location', { loc });
+  else showScreen('map');
+  return g;
 }
 
 // 给新 game 挂「章节完成 → 立即自动保存」里程碑
@@ -235,6 +247,8 @@ window.GRPG = Object.assign({}, ACTIONS, COMBAT_ACTIONS, {
   loadFromSlot,
   listSlots,
   deleteSlot,
+  deleteAutoSlot,
+  loadAutoSave,
   SLOT_COUNT,
   getGame,
   setGame,

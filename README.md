@@ -1,6 +1,6 @@
 # 执魔 · 浏览器单机 RPG
 
-> **v1.5.0** · 零构建 · 完全数据驱动 · 原生 HTML/CSS/JS + ES Modules
+> **v1.5.1** · 零构建 · 完全数据驱动 · 原生 HTML/CSS/JS + ES Modules
 
 🕹️ **在线试玩**：<https://seekersung.github.io/the-demon-s-grip/>　·　📦 **GitHub**：<https://github.com/SEEKERSUNG/the-demon-s-grip>
 
@@ -17,7 +17,7 @@
 - **章节引擎**：主线 endQuest 完成 → 自动章节过渡 + 过场演出
 - **商店交易**：物品仅在商店出售；可装备物品卡片直接显示属性加成（无需进装备栏对比）；商店买/卖、旅店恢复
 - **快捷导航**：底部固定栏（🎒背包·📋任务·🧙状态），探索中一键直达，返回直接回到游戏画面（无需经过菜单中转）
-- **存档**：localStorage 4 槽位，SCHEMA_VERSION 版本化迁移；新开档/读档后**自动保存**（每 60 秒 + 章节完成里程碑），菜单显示当前档位与上次保存时间
+- **存档**：localStorage 4 槽位 + 独立自动存档位（不覆盖手动存档），SCHEMA_VERSION 版本化迁移；**存档导出/导入**（JSON 文件备份/迁移）；每 60 秒 + 章节里程碑自动保存
 - **可复现**：seeded RNG + 无 DOM 回放，四套 Node 验证脚本
 
 ## 快速开始
