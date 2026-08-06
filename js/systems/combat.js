@@ -151,7 +151,7 @@ function applyPlayerAction(game, combat, action) {
     case 'skill': {
       const skill = getSkill(game.CONTENT, action.skillId);
       if (!skill) return { ok: false, reason: '未知技能' };
-      if (!game.state.player.learnedSkills.includes(skill.id)) return { ok: false, reason: '尚未学会' };
+      if (!game.skills.usableSkills(game).some(s => s.id === skill.id)) return { ok: false, reason: '尚未学会' };
       if (u.curMp < (skill.mpCost || 0)) return { ok: false, reason: 'MP 不足' };
       u.curMp -= skill.mpCost || 0;
       let targets;

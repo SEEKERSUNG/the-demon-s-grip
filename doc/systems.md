@@ -91,14 +91,14 @@ base  *= skill.power                 // 普攻 power = 1
 ## 商店 shop.js
 
 - `stockView(game, shop)`：合并已售数量，返回 `remaining`（`qty: null`=无限）。
-- `buy(game, shop, itemId, qty)`：校验库存/金币 → 扣金币 → `addItem` → 记已售。
+- `buy(game, shop, itemId, qty)`：校验库存/金币/等级需求 → 扣金币 → `addItem` → 记已售。
 - `sell(game, itemId, qty)`：任务道具不可卖；价格 = `sellPrice ?? price × 0.5`；`removeItem` → 加金币。
 - **背包直售**：UI 物品卡片「💰 卖」按钮直接调 `shop.sell`（标准半价），无需进商店。
 
 ## 装备 equipment.js
 
 - 槽位：`SLOTS = ['weapon', 'armor', 'accessory', 'accessory2']`。
-- `equipItem(game, itemId)`：按 `slotFor` 确定槽位；原装备**退回背包**；从背包扣除一件新装备。
+- `equipItem(game, itemId)`：按 `slotFor` 确定槽位；校验 `levelReq`（等级不足拒绝）；原装备**退回背包**；从背包扣除一件新装备。
   - `slotFor` 尊重数据 `slot`：饰品 `accessory`/`accessory2` 各归其位（修复过"新装备挤掉旧装备"的问题）。
 - `unequip(game, slot)`：装备回背包。
 - `getEquipBonuses`：汇总所有已装备加成 → `player.getStats`。

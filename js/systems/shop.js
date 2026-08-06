@@ -20,6 +20,8 @@ export function buy(game, shop, itemId, qty = 1) {
   const { state } = game;
   const entry = shop.stock.find((s) => s.item === itemId);
   if (!entry) return { ok: false, msg: '商店没有这件商品' };
+  const def = game.CONTENT.items.find((x) => x.id === itemId);
+  if (def?.levelReq && game.state.player.level < def.levelReq) return { ok: false, msg: '等级不足，无法购买' };
   const sold = (state.shopStock ||= {})[shop.id] || ((state.shopStock[shop.id] = {}));
   const remaining = entry.qty == null ? Infinity : entry.qty - (sold[itemId] || 0);
   if (remaining < qty) return { ok: false, msg: '库存不足' };

@@ -94,7 +94,7 @@ export function renderCombatScreen(g, ctx = {}) {
       </div>
     </div>
     <div class="combat-log" id="combat-log">
-      ${combat.log.slice(-30).map((l) => `<div class="cl-line ${l.cls}">${esc(l.text)}</div>`).join('')}
+      ${combat.log.slice(-30).map((l) => `<div class="cl-line cl-${l.cls}">${esc(l.text)}</div>`).join('')}
     </div>
     <div class="command-panel">
       <div class="command-tabs">

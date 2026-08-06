@@ -11,7 +11,7 @@ export const ENUMS = {
   eventType: ['chest', 'battle', 'dialogue', 'npc', 'story', 'sign', 'collect', 'choice'],
   questType: ['main', 'side'],
   questStatus: ['active', 'done', 'completed'],
-  objectiveType: ['talk', 'kill', 'explore', 'collect', 'fetch'],
+  objectiveType: ['talk', 'kill', 'explore', 'collect'],
   npcRole: ['quest_giver', 'shop', 'story', 'generic', 'blacksmith', 'inn'],
 };
 
@@ -104,7 +104,7 @@ export function validateContent(C) {
     (l.enemies || []).forEach((pair) => { if (Array.isArray(pair)) checkRef(w, 'enemy', pair[0]); });
     (l.events || []).forEach((ev) => checkRef(w, 'event', ev));
     (l.npcs || []).forEach((n) => checkRef(w, 'npc', n));
-    (l.chests || []).forEach((c) => checkRef(w, 'item', c.item));
+    (l.chests || []).forEach((c) => { checkRef(w, 'item', c.item); if (c.items) c.items.forEach((i) => checkRef(w, 'item', i)); });
     if (l.boss?.enemy) checkRef(w, 'enemy', l.boss.enemy);
     (l.boss?.drops || []).forEach((d) => checkRef(w, 'item', d.item));
   }
@@ -133,7 +133,7 @@ export function validateContent(C) {
     (q.stages || []).forEach((st, si) => {
       (st.objectives || []).forEach((ob, oi) => {
         if (!ENUMS.objectiveType.includes(ob.type)) err(w, `stages[${si}].objectives[${oi}].type 非法: ${ob.type}`);
-        const key = ob.type === 'talk' || ob.type === 'fetch' ? 'npc' : ob.type === 'kill' ? 'enemy' : ob.type === 'explore' ? 'location' : 'item';
+        const key = ob.type === 'talk' ? 'npc' : ob.type === 'kill' ? 'enemy' : ob.type === 'explore' ? 'location' : 'item';
         checkRef(w, key, ob.target);
       });
     });

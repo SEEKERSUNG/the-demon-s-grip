@@ -60,7 +60,7 @@ export function migrate(state) {
     equipped: { weapon: null, armor: null, accessory: null, accessory2: null, ...(s.player?.equipped || {}) },
   };
   // cur 缺失或字段不完整 → 回满
-  const hasCur = s.player.cur && typeof s.player.cur.hp === 'number';
+  const hasCur = s.player.cur && typeof s.player.cur.hp === 'number' && typeof s.player.cur.mp === 'number';
   if (!hasCur) {
     s.player.cur = { hp: s.player.base.maxHp, mp: s.player.base.maxMp };
   }

@@ -43,8 +43,8 @@ export function useItem(game, itemId) {
     const s = player.getStats(state, game.CONTENT.items);
     const healHp = Math.min(item.effect.hp || 0, s.maxHp - state.player.cur.hp);
     const healMp = Math.min(item.effect.mp || 0, s.maxMp - state.player.cur.mp);
-    if (item.effect.hp && healHp <= 0 && !item.effect.mp) {
-      return { ok: false, msg: 'HP 已满，无需使用' };
+    if ((item.effect.hp || 0) + (item.effect.mp || 0) > 0 && healHp <= 0 && (item.effect.mp ? healMp <= 0 : true)) {
+      return { ok: false, msg: 'HP/MP 已满，无需使用' };
     }
     player.heal(game, item.effect.hp || 0, item.effect.mp || 0);
     if (item.effect.hp) messages.push(`恢复了 ${Math.max(0, healHp)} 点 HP`);

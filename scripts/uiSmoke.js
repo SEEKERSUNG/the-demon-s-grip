@@ -139,6 +139,7 @@ assert(app.innerHTML.includes('☰ 菜单'), '菜单渲染');
 console.log('\n=== 装备槽 / 背包卖出 ===');
 {
   const g = GRPG.getGame();
+  g.state.player.level = 12; // 满足金戒指(Lv4)与影之披风(Lv12)的等级需求
   g.state.player.gold = 2000;
   const smith = g.CONTENT.shops.find((s) => s.id === 'SHOP_SMITH');
   g.shop.buy(g, smith, 'ACC_RING_GOLD', 1);

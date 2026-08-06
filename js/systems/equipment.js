@@ -35,6 +35,7 @@ export function equipItem(game, itemId) {
   const { state } = game;
   const item = game.CONTENT.items.find((x) => x.id === itemId);
   if (!item || !isEquippable(item)) return false;
+  if (item.levelReq && game.state.player.level < item.levelReq) return false;
   const slot = slotFor(item);
   const prev = state.player.equipped[slot];
   state.player.equipped[slot] = itemId;
