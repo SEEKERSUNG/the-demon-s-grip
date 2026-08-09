@@ -99,6 +99,7 @@ export function autoSave() {
   const game = getGame();
   if (!game) return false;
   if (!game.state.chapter) return false;
+  if (game.combat) return false; // 战斗中不自动存档（state.player.cur 未同步）
   return saveAutoSlot(game.state);
 }
 
@@ -110,6 +111,9 @@ export function loadAutoSave() {
   setGame(g);
   wireAutoSave(g);
   uiState.quickReturn = null;
+  uiState.pendingInterlude = null;
+  uiState.pendingNext = null;
+  uiState.menuReturn = null;
   const loc = g.state.location ? locById(g.state.location) : null;
   if (loc) showScreen('location', { loc });
   else showScreen('map');

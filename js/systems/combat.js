@@ -84,7 +84,7 @@ export function doPlayerAction(game, combat, action) {
   // 玩家先手
   const playerFirst = combat.playerUnit.stats.spd >= Math.max(...combat.enemies.map((e) => e.stats.spd));
   if (playerFirst) {
-    const r = applyPlayerAction(game, combat, action);
+    const r = applyPlayerAction(game, combat, action, playerFirst);
     if (!r.ok) return r;
     afterPlayerPhase(game, combat);
     if (combat.phase !== 'player') return { ok: true };
@@ -92,7 +92,7 @@ export function doPlayerAction(game, combat, action) {
   } else {
     runEnemyPhase(game, combat);
     if (combat.phase !== 'player') return { ok: true };
-    const r = applyPlayerAction(game, combat, action);
+    const r = applyPlayerAction(game, combat, action, playerFirst);
     if (!r.ok) return r;
     afterPlayerPhase(game, combat);
   }
@@ -139,7 +139,7 @@ function runEnemyPhase(game, combat) {
 
 // ---- 玩家行动应用 ----
 
-function applyPlayerAction(game, combat, action) {
+function applyPlayerAction(game, combat, action, playerFirst) {
   const u = combat.playerUnit;
   switch (action.type) {
     case 'attack': {
@@ -153,12 +153,12 @@ function applyPlayerAction(game, combat, action) {
       if (!skill) return { ok: false, reason: '未知技能' };
       if (!game.skills.usableSkills(game).some(s => s.id === skill.id)) return { ok: false, reason: '尚未学会' };
       if (u.curMp < (skill.mpCost || 0)) return { ok: false, reason: 'MP 不足' };
-      u.curMp -= skill.mpCost || 0;
       let targets;
       if (skill.target === 'all_enemies') targets = aliveEnemies(combat);
       else if (skill.target === 'self') targets = [u];
       else targets = [combat.enemies.find((e) => e.ref === action.target && e.alive)];
       if (!targets || targets.length === 0 || targets[0] === undefined) return { ok: false, reason: '目标已倒下' };
+      u.curMp -= skill.mpCost || 0;
       applySkillTo(game, combat, u, skill, targets);
       return { ok: true };
     }
@@ -176,7 +176,8 @@ function applyPlayerAction(game, combat, action) {
     case 'defend': {
       const u2 = combat.playerUnit;
       u2.buffs.defMult = 2;
-      u2.buffTurns.defMult = 1;
+      // 慢速玩家：敌人本回合已攻击，防御需持续到下回合敌攻才生效
+      u2.buffTurns.defMult = playerFirst ? 1 : 2;
       addLog(combat, '🛡️ 你摆出防御姿态。', 'info');
       return { ok: true };
     }

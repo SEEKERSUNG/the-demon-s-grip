@@ -21,7 +21,7 @@
 
 直接调用 `validateContent(CONTENT)`（与浏览器启动时同一函数），校验：
 - 全部 11 类内容 id **唯一**；
-- 外键引用存在：`drops.item`、`skills.learn.item`、`npc.location/shop/dialogue/quests`、`location.region/enemies/events/npcs/chests`、`quest.giver/turnIn/unlocks/rewards/objectives.target`、`dialogue` 的 `to`/`quest:`/`dialogue:`、`shop.stock.item`、`chapter.startingMap/objectives/endQuest/next`；
+- 外键引用存在：`drops.item`、`skills.learn.item`、`npc.location/shop/dialogue/quests`、`location.region/enemies/events/npcs/chests`、`quest.giver/turnIn/unlocks/rewards/objectives.target`、`dialogue` 的 `to`/`quest:`/`dialogue:`、`shop.stock.item`、`chapter.startingMap/objectives/endQuest/next`、`event.then.enemies`（v1.5.2 新增）；
 - 枚举合法（type/target/rarity/role/objectiveType…，见 `validate.js ENUMS`）；
 - 数值非负、掉落率 ∈ [0,1]、对话 `start` 与跳转节点存在。
 

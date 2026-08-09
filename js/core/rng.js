@@ -21,8 +21,6 @@ export function createRng(seed = Date.now() >>> 0) {
       for (const [val, w] of pairs) { r -= w; if (r <= 0) return val; }
       return pairs[pairs.length - 1][0];
     },
-    // 从池子里随机抽 n 个（可重复）
-    draws(pool, n) { return Array.from({ length: n }, () => api.pick(pool)); },
   };
   return api;
 }

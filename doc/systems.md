@@ -10,6 +10,8 @@
 - `doPlayerAction(game, combat, action)`：`{ type:'attack'|'skill'|'item'|'defend'|'flee', target, skillId, itemId }`。
   - 按速度决定先手：玩家先手则 玩家行动 → 敌人行动；敌人先手反之。
   - 每回合结束 `tickBuffs` 结算增益持续回合。
+- **技能 MP 扣除**：先校验目标有效再扣 MP，避免目标无效时白扣（v1.5.2 修复）。
+- **防御与先手**：玩家先手时防御 `turns=1`（本回合敌攻即消费）；慢速玩家 `turns=2`（本回合敌攻已过，防御持续到下回合敌攻才生效）（v1.5.2 修复）。
 - **技能校验**：使用技能须在 `usableSkills(game)`（已学会 + 装备 `skillUnlocks` 解锁）集合内，否则返回「尚未学会」——装备解锁的技能在战斗中可用。
 - 敌方行动：`enemyAction.chooseEnemyAction(enemy)` 从 `ai` 表选技能（`'ATTACK'`=普攻，字符串=指定技能，对象=带 `hpPct` 条件的技能）。
 - **道具使用**：战斗单位 HP/MP 未同步到 state，使用前先把单位值覆盖回 state，结算后再读回——避免误判"HP 已满"；消耗品在 HP/MP **均已满**时才拒绝使用，且 `effect.hp` 为 0 的 MP 药不因 HP 已满而误拒（防浪费）。
@@ -82,6 +84,7 @@ base  *= skill.power                 // 普攻 power = 1
   - 一次性事件未触发（`once + flag` 排除）
   - 「离开此地」出口
 - `triggerEvent(game, ev)`：按 `ev.type` 分发 `story/sign`（置 flag）、`collect`（发道具/金币）、`dialogue`、`battle`。
+- `leaveLocation(game, loc)`：清理 `state.location`，返回区域。
 - 宝箱：`openLocationChest` 置 `openedChests`，`loot.openChest` 支持 `chest.item`（单数）/`chest.items`（数组）/`chest.gold`。
 
 ## 遭遇 encounter.js
@@ -94,7 +97,7 @@ base  *= skill.power                 // 普攻 power = 1
 
 - `stockView(game, shop)`：合并已售数量，返回 `remaining`（`qty: null`=无限）。
 - `buy(game, shop, itemId, qty)`：校验库存/金币/等级需求 → 扣金币 → `addItem` → 记已售。
-- `sell(game, itemId, qty)`：任务道具不可卖；价格 = `sellPrice ?? price × 0.5`；`removeItem` → 加金币。
+- `sell(game, shop, itemId, qty)`：任务道具不可卖；价格 = `sellPrice ?? price × shop.sellRate`（默认 0.5）；`removeItem` → 加金币。
 - **商店交易**：物品只能通过商店卖出（`shop.sell`），背包不再提供直售按钮；商店买/卖、旅店恢复。
 - 商店买入校验库存/金币/等级需求；任务道具不可出售。
 
@@ -124,12 +127,13 @@ base  *= skill.power                 // 普攻 power = 1
 - `SCHEMA_VERSION = 1`；`MIGRATIONS` 表 `{ fromVersion: (old) => new }`。
 - `migrate(state)`：逐版升级 + 补齐默认字段（base/equipped/cur）。
   - **注意**：迁移只补中性默认值，不注入内容——开局配装只作用于 `createInitialState` 的新档。
+  - **版本上限**：`importSaveData` 拒绝 `version > SCHEMA_VERSION` 的存档（v1.5.2 修复），防止未来版本存档被静默降级损坏。
 - `saveToSlot / loadFromSlot / deleteSlot / slotInfo / listSlots`：localStorage `grpg_save_{slot}`。
 
 ### 自动保存（独立槽位，v1.5.1）
 
 - 自动存档使用独立 key `grpg_autosave`，**永不覆盖玩家手动存档位**（`grpg_save_{0-3}`）。
-- `autoSave()`：有进行中的游戏且章节已开始时写回自动槽位，否则静默跳过；不依赖 `activeSlot`。
+- `autoSave()`：有进行中的游戏且章节已开始时写回自动槽位，否则静默跳过；不依赖 `activeSlot`。**战斗中跳过**（`game.combat` 存在时 `state.player.cur` 未同步，v1.5.2 修复）。
 - 触发：`boot` 启动**每 60 秒**定时自动保存；**章节完成**（`chapter:end` 事件）立即保存并 toast。
 - 菜单顶部显示「自动保存 · 独立槽位 · 上次保存时间」。
 

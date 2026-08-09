@@ -13,14 +13,13 @@ import * as quests from '../systems/quests.js';
 import * as dialogue from '../systems/dialogue.js';
 import * as shop from '../systems/shop.js';
 import * as npc from '../systems/npc.js';
-import { EVENTS } from '../core/events.js';
 import { esc, itemById, skillById, locById, regionById, questById, npcById, pct, toast, rarityText, itemStatsText, slotLabel, doSave, doLoad, startNewGame, backToTitle, openMenu, afterCombatReturn, loadAutoSave } from './main.js';
 import { GAME_VERSION, GAME_TITLE } from '../core/version.js';
 
 const app = document.getElementById('app');
 
 let game = null;
-export const uiState = { pendingInterlude: null, pendingNext: null, backStack: [], currentScreen: null, menuReturn: null, inventoryTab: 'bag', activeSlot: -1, quickReturn: null };
+export const uiState = { pendingInterlude: null, pendingNext: null, currentScreen: null, menuReturn: null, inventoryTab: 'bag', activeSlot: -1, quickReturn: null };
 
 export function setGame(g) { game = g; if (g) wireGameEvents(g); }
 export function getGame() { return game; }
@@ -898,6 +897,7 @@ export function closeDialogue() {
 }
 
 function afterDialogueEnd() {
+  if (game.dlgSession) game.dlgSession = null;
   if (uiState.pendingInterlude) {
     const ch = uiState.pendingInterlude;
     uiState.pendingInterlude = null;
@@ -922,17 +922,20 @@ export function goToMap() {
 export function useItem(id) {
   const res = inventory.useItem(game, id);
   toast(res.ok ? res.msg : res.msg);
-  showScreen('inventory', { tab: uiState.inventoryTab || 'bag' });
+  const back = uiState.quickReturn ? 'quick' : 'menu';
+  showScreen('inventory', { tab: uiState.inventoryTab || 'bag', back });
 }
 export function equipItem(id) {
   equipment.equipItem(game, id);
   toast('已装备');
-  showScreen('inventory', { tab: 'equip' });
+  const back = uiState.quickReturn ? 'quick' : 'menu';
+  showScreen('inventory', { tab: 'equip', back });
 }
 
 export function unequip(slot) {
   equipment.unequip(game, slot);
-  showScreen('inventory', { tab: 'equip' });
+  const back = uiState.quickReturn ? 'quick' : 'menu';
+  showScreen('inventory', { tab: 'equip', back });
 }
 
 export function buy(shopId, itemId) {
@@ -944,7 +947,7 @@ export function buy(shopId, itemId) {
 
 export function sell(shopId, itemId) {
   const shopD = shop.getShop(CONTENT, shopId);
-  const res = shop.sell(game, itemId, 1);
+  const res = shop.sell(game, shopD, itemId, 1);
   toast(res.ok ? '✅ ' + res.msg : '❌ ' + res.msg);
   showScreen('shop', { shopId, returnTo: 'location' });
 }
@@ -965,7 +968,9 @@ export function closeShop() {
 
 export function respawn() {
   const ch = game.story.currentChapter(game);
+  if (!ch) { showScreen('map'); return; }
   const reg = regionById(ch.startingMap);
+  if (!reg) { showScreen('map'); return; }
   game.state.region = reg.id;
   game.state.location = reg.locations[0];
   const s = player.getStats(game.state, CONTENT.items);

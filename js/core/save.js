@@ -120,6 +120,10 @@ export function importSaveData(jsonStr) {
     if (!parsed.data.player || !parsed.data.player.name) {
       return { ok: false, error: '无效的存档文件：缺少玩家数据' };
     }
+    const dataVersion = parsed.data.version ?? 1;
+    if (dataVersion > SCHEMA_VERSION) {
+      return { ok: false, error: `存档版本(v${dataVersion})高于当前游戏版本(v${SCHEMA_VERSION})，请更新游戏` };
+    }
     // 校验并迁移数据
     const migrated = migrate(parsed.data);
     if (!migrated) return { ok: false, error: '存档迁移失败' };

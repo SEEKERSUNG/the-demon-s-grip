@@ -112,10 +112,7 @@ export function triggerEvent(game, ev) {
   }
 }
 
-// 地点离开时：若有 onExit 剧情触发
+// 地点离开时：清理 state.location
 export function leaveLocation(game, loc) {
   exitLocation(game);
-  if (loc.onExit) {
-    game.events.emit('location:onExit', { loc, onExit: loc.onExit });
-  }
 }

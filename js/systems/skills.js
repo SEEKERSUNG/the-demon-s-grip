@@ -18,11 +18,6 @@ export function usableSkills(game) {
   return CONTENT.skills.filter((s) => ids.has(s.id));
 }
 
-// 花费MP是否足够
-export function canCast(game, skill) {
-  return game.state.player.cur.mp >= (skill.mpCost || 0);
-}
-
 export function playerUnit(game) {
   const { state, CONTENT } = game;
   const stats = playerStats(state, CONTENT.items);

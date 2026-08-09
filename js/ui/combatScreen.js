@@ -25,8 +25,8 @@ export function renderCombatScreen(g, ctx = {}) {
   if (!selectedEnemy && alive.length) selectedEnemy = alive[0].ref;
 
   if (combat.phase === 'victory') return renderVictory(combat);
-  if (combat.phase === 'defeat') { combatSys.syncPlayerState(game, combat); showScreen('gameover'); return; }
-  if (combat.phase === 'fled') { combatSys.syncPlayerState(game, combat); afterCombatReturn(); return; }
+  if (combat.phase === 'defeat') { combatSys.syncPlayerState(game, combat); game.combat = null; showScreen('gameover'); return; }
+  if (combat.phase === 'fled') { combatSys.syncPlayerState(game, combat); game.combat = null; afterCombatReturn(); return; }
 
   const u = combat.playerUnit;
   const skillsList = skills.usableSkills(game);
@@ -165,6 +165,7 @@ export function cmdFlee() {
 }
 
 export function finishCombat() {
+  if (game) game.combat = null;
   afterCombatReturn();
 }
 
@@ -172,7 +173,7 @@ function doAction(action) {
   const combat = game.combat;
   if (!combat || combat.phase !== 'player') return;
   const res = combatSys.doPlayerAction(game, combat, action);
-  if (!res.ok) { toast('❌ ' + res.reason); return; }
+  if (!res.ok) { pendingSkill = null; toast('❌ ' + res.reason); return; }
   pendingSkill = null;
   refresh();
 }

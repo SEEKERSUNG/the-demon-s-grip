@@ -1,6 +1,6 @@
 # 执魔 · 浏览器单机 RPG
 
-> **v1.5.1** · 零构建 · 完全数据驱动 · 原生 HTML/CSS/JS + ES Modules
+> **v1.5.2** · 零构建 · 完全数据驱动 · 原生 HTML/CSS/JS + ES Modules
 
 🕹️ **在线试玩**：<https://seekersung.github.io/the-demon-s-grip/>　·　📦 **GitHub**：<https://github.com/SEEKERSUNG/the-demon-s-grip>
 
@@ -79,9 +79,37 @@ doc/                     技术文档（架构 / 数据Schema / 系统 / 扩展 
 ```bash
 npm run check         # 内容引用完整性校验（改内容后必跑）
 npm run playthrough   # 无DOM回放：三章主线端到端断言（26项，含对话路径）
-npm run uiSmoke       # UI冒烟：最小DOM mock 驱动关键交互（53项）
+npm run uiSmoke       # UI冒烟：最小DOM mock 驱动关键交互（51项）
 npm run balance       # 数值平衡：正常玩家+商店补给通关第一章
 ```
+
+## 更新日志
+
+### v1.5.2 — Bug 修复与代码清理
+
+**战斗系统修复：**
+- 技能 MP 扣除移到目标校验之后，避免目标无效时白扣 MP
+- 「防御」对慢速玩家生效：慢速玩家防御持续到下回合敌攻（turns 按先手调整）
+- 战斗失败指令现在正确清理 `pendingSkill` 状态
+- 战斗/对话结束后清理 `game.combat` / `game.dlgSession` 引用
+
+**校验与存档修复：**
+- `validate.js` 新增 battle 事件 `then.enemies` 数组的敌人 id 校验（原来只查单数 `enemy`）
+- 商店卖出价统一使用 `shop.sellRate`（`shop.sell` 接收 shop 参数，与 UI 显示一致）
+- 导入未来版本存档时拒绝并提示（不再静默降级损坏数据）
+- `respawn()` 增加章节/区域 null 检查，存档损坏不再白屏
+- 战斗中跳过自动存档（避免存入未同步的战斗前状态）
+- `loadAutoSave` 清理 `pendingInterlude` / `pendingNext` / `menuReturn` 中间态
+
+**UI 修复：**
+- 快捷栏进背包后使用道具/装备/卸下不再丢失 `back:'quick'` 返回标记
+
+**代码清理：**
+- 移除死代码：`rng.draws`、`skills.canCast`、`uiState.backStack`、CSS `.type-caret`、`location:onExit` 事件
+- 移除 `validate.js` 中的空 `if` 分支
+- 移除 `screens.js` 中未使用的 `EVENTS` 导入
+
+### v1.5.1 — 自动存档独立槽位 + 存档导出/导入
 
 ## 技术文档
 

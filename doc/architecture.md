@@ -15,7 +15,7 @@ js/
     state.js      createInitialState()、SCHEMA_VERSION、migrate()（存档迁移）
     game.js       createGame()：组装 state/rng/events/CONTENT + 全部系统，接线章节推进
     observer.js   微型事件总线（on/off/emit）
-    events.js     领域事件名常量（EVENTS）
+    events.js     领域事件名常量（EVENTS，供参考；实际 emit/on 使用字符串）
     rng.js        mulberry32 seeded RNG（可注入种子，测试可复现）
     save.js       localStorage 多槽位 CRUD + 存档元信息
     validate.js   内容引用完整性 / 枚举 / 数值范围校验
@@ -100,7 +100,7 @@ doc/        本技术文档
 
 - 屏幕不直接改 state，一律走系统 API。
 - 系统间解耦靠事件（observer），UI 监听事件后重渲染或弹 toast。
-- 战斗是例外：战斗对象独立于 state（只读引用），胜利/逃跑后 `syncPlayerState` 统一写回。
+- 战斗是例外：战斗对象独立于 state（只读引用），胜利/逃跑后 `syncPlayerState` 统一写回。战斗/对话结束后 `game.combat` / `game.dlgSession` 置 null（v1.5.2），避免残留引用旧对象。
 
 ## 事件驱动
 
@@ -132,7 +132,7 @@ doc/        本技术文档
 ## 校验
 
 `validateContent(CONTENT)` 在启动（`boot()`）与 `scripts/check.js` 中运行：
-- 全量 id 集合 → 断言外键存在（drops.item、objectives.target、npc.dialogue、dialogue to/flag…）
+- 全量 id 集合 → 断言外键存在（drops.item、objectives.target、npc.dialogue、dialogue to/flag、event.then.enemies…）
 - id 唯一、枚举合法、数值非负、对话跳转节点存在
 - 失败 = 阻断启动 + 列出全部断口
 
@@ -143,7 +143,7 @@ doc/        本技术文档
 - `main.js`：`boot()`（校验内容 → 渲染标题屏）；把各模块导出的 action 统一 `Object.assign` 到 `window.GRPG`，屏幕内联 `onclick` 全部经 `GRPG.*` 调用。
 - `screens.js`：`SCREENS` 对象（每个屏幕 `(ctx) => void` 负责 `app.innerHTML` + 事件绑定）、`showScreen(name, ctx)` 路由、`uiState`（当前屏 / 菜单返回目标 / 待播过场）。
 - **循环依赖约定**：screens/combatScreen 不直接写 `window`；action 函数导出后由 main.js 统一挂载到 GRPG。
-- **返回导航**：`uiState.menuReturn` 记录菜单来源，菜单「← 返回游戏」回到原地点/区域/地图；`back` 参数决定读档/关于等二级屏返回上一级。
+- **返回导航**：`uiState.menuReturn` 记录菜单来源，菜单「← 返回游戏」回到原地点/区域/地图；`back` 参数决定读档/关于等二级屏返回上一级。`uiState.quickReturn` 记录快捷栏来源，使用道具/装备/卸下后保留 `back:'quick'` 标记（v1.5.2 修复）。
 
 ## 版本号
 

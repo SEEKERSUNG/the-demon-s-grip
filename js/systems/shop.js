@@ -32,13 +32,13 @@ export function buy(game, shop, itemId, qty = 1) {
   return { ok: true, msg: `购入 ${itemId} ×${qty}` };
 }
 
-export function sell(game, itemId, qty = 1) {
+export function sell(game, shop, itemId, qty = 1) {
   const { state } = game;
   const item = game.CONTENT.items.find((x) => x.id === itemId);
   if (!item) return { ok: false, msg: '未知道具' };
   if (item.quest) return { ok: false, msg: '任务道具无法出售' };
   if (inventory.countItem(state, itemId) < qty) return { ok: false, msg: '数量不足' };
-  const price = item.sellPrice ?? Math.floor((item.price || 0) * 0.5);
+  const price = item.sellPrice ?? Math.floor((item.price || 0) * (shop?.sellRate ?? 0.5));
   inventory.removeItem(game, itemId, qty);
   player.addGold(game, price * qty);
   return { ok: true, msg: `售出 ${item.name} ×${qty}，获得 ${price * qty} 金币` };

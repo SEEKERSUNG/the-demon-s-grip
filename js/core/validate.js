@@ -119,6 +119,7 @@ export function validateContent(C) {
       if (ev.then.dialogue) checkRef(w, 'dialogue', ev.then.dialogue);
       if (ev.then.quest) checkRef(w, 'quest', ev.then.quest);
       if (ev.then.enemy) checkRef(w, 'enemy', ev.then.enemy);
+      if (Array.isArray(ev.then.enemies)) ev.then.enemies.forEach((eid) => checkRef(w, 'enemy', eid));
     }
   }
 
@@ -147,7 +148,6 @@ export function validateContent(C) {
       const nodeKey = `${w}.${nid}`;
       (node.options || []).forEach((op, i) => {
         if (op.to && op.to !== 'end' && !dg.nodes[op.to]) err(nodeKey, `选项[${i}] 跳到不存在的节点: ${op.to}`);
-        if (op.cond?.flag && !/^FLAG_/.test(op.cond.flag)) {} // flag 名称自由，不强制
       });
       (node.actions || []).forEach((a) => {
         if (typeof a === 'string' && a.startsWith('quest:')) {
