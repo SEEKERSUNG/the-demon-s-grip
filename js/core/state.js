@@ -30,7 +30,6 @@ export function createInitialState() {
     visitedLocations: [],          // 已到访地点 id
     openedChests: [],              // 已开的宝箱 id
     battlesWon: 0,
-    playTime: 0,
   };
 }
 

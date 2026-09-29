@@ -105,8 +105,6 @@ export function validateContent(C) {
     (l.events || []).forEach((ev) => checkRef(w, 'event', ev));
     (l.npcs || []).forEach((n) => checkRef(w, 'npc', n));
     (l.chests || []).forEach((c) => { checkRef(w, 'item', c.item); if (c.items) c.items.forEach((i) => checkRef(w, 'item', i)); });
-    if (l.boss?.enemy) checkRef(w, 'enemy', l.boss.enemy);
-    (l.boss?.drops || []).forEach((d) => checkRef(w, 'item', d.item));
   }
 
   // ---- events ----

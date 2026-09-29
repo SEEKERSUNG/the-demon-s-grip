@@ -85,7 +85,7 @@ doc/        本技术文档
   flags: {},            // 剧情门禁 / 一次性事件
   chapter, chapterStarted,
   region, location,     // 当前所在
-  visitedLocations, openedChests, battlesWon, playTime,
+  visitedLocations, openedChests, battlesWon,
 }
 ```
 

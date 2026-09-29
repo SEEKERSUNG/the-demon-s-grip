@@ -244,6 +244,36 @@ console.log('\n=== explore 目标接取前已访问回归（软锁修复）===')
   assert(g.state.quests.QT_TEST_EXPLORE?.status === 'completed', '接取前已访问的地点 → explore 目标自动达成（不再软锁）');
 }
 
+console.log('\n=== 交还自动接取任务的 talk 目标回归（同次对话推进）===');
+{
+  // 交还「军饷疑云」给阿岩 → 「背叛之夜」自动接取，其首阶段 talk(阿岩) 应同次对话即推进
+  const g = createGame({ seed: 97 });
+  godMode(g);
+  const rations = CONTENT.quests.find((q) => q.id === 'Q2_CH2_RATIONS');
+  g.quests.acceptQuest(g, rations);
+  g.quests.progressObjective(g, { type: 'talk', target: 'NPC_COMRADE', n: 1 }); // s1 talk
+  g.quests.progressObjective(g, { type: 'explore', target: 'LOC_RUIN_CITY', n: 1 });
+  g.inventory.addItem(g, 'QI_RATIONS', 1);
+  g.quests.progressObjective(g, { type: 'talk', target: 'NPC_COMRADE', n: 1 }); // s2 talk → done
+  const dlg = g.CONTENT.dialogues.find((d) => d.id === 'DLG_COMRADE');
+  g.dialogue.startDialogue(g, dlg, { npc: 'NPC_COMRADE', speakerName: '阿岩' });
+  assert(g.state.quests.Q2_CH2_BETRAYAL?.status === 'active', '交还军饷疑云 → 背叛之夜自动接取');
+  assert(g.state.quests.Q2_CH2_BETRAYAL?.counts['0:0'] === 1, '背叛之夜首阶段 talk(阿岩) 同次对话即推进（无需二次对话）');
+
+  // 交还「远方烽火」给国王 → 「幕后黑手」自动接取，其首阶段 talk(国王) 同次对话即推进
+  const g2 = createGame({ seed: 98 });
+  godMode(g2);
+  const distress = CONTENT.quests.find((q) => q.id === 'Q3_CH3_DISTRESS');
+  g2.quests.acceptQuest(g2, distress);
+  g2.quests.progressObjective(g2, { type: 'talk', target: 'NPC_EMISSARY', n: 1 });
+  g2.explore.enterLocation(g2, CONTENT.locations.find((l) => l.id === 'LOC_HUMAN_CAPITAL'));
+  g2.quests.progressObjective(g2, { type: 'talk', target: 'NPC_KING', n: 1 }); // s2 talk → done
+  const dlgKing = g2.CONTENT.dialogues.find((d) => d.id === 'DLG_KING');
+  g2.dialogue.startDialogue(g2, dlgKing, { npc: 'NPC_KING', speakerName: '国王' });
+  assert(g2.state.quests.Q3_CH3_FIND_CAUSE?.status === 'active', '交还远方烽火 → 幕后黑手自动接取');
+  assert(g2.state.quests.Q3_CH3_FIND_CAUSE?.counts['0:0'] === 1, '幕后黑手首阶段 talk(国王) 同次对话即推进');
+}
+
 console.log('\n====================================');
 console.log(`通过 ${passed} 项，失败 ${failed} 项`);
 if (failed > 0) process.exit(1);

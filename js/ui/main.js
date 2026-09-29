@@ -207,16 +207,7 @@ export function boot() {
     return;
   }
 
-  // 全局事件接线
-  const gameOf = () => getGame();
-  const g = gameOf;
-
-  // 章节开始 → 显示开场（经 story.startChapter 触发）
-  // （screens 模块在 showScreen('story') 中处理）
-
-  // 对话要求开商店
-  // 由 screens 模块内监听
-
+  // 章节开场/对话开商店等全局事件由 screens 模块在 wireGameEvents 中接线
   // 定时自动保存（60 秒），无进行中游戏时静默跳过
   setInterval(() => autoSave(), 60_000);
 

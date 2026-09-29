@@ -242,6 +242,18 @@
 .item-card.rarity-epic { border-color: var(--epic); }
 .item-card.rarity-legendary { border-color: var(--legendary); }
 
+/* ===== 物品百科 ===== */
+.codex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(185px, 1fr));
+  gap: 10px;
+}
+.codex-grid .item-card { cursor: default; }
+.codex-grid .item-card:hover { transform: none; }
+.item-card .i-desc { color: var(--text-dim); font-size: .72rem; margin-top: 4px; line-height: 1.5; }
+.item-card .i-src { color: var(--gold-bright); font-size: .7rem; margin-top: 4px; line-height: 1.5; }
+.item-card .i-src.none { color: var(--text-dim); }
+
 /* 装备栏 */
 .equip-list { display: flex; flex-direction: column; gap: 8px; }
 .equip-slot {

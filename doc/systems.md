@@ -71,7 +71,7 @@ base  *= skill.power                 // 普攻 power = 1
 - `nodeView(game, session)`：执行节点 `actions`，按 `cond` 过滤 `options`，产出视图。
   - actions：`quest:QID`（接取/交还）、`heal`（满恢复）、`flag:FLAG`、`shop:SHOP_ID`（广播 `dialogue:openShop`，UI 切换到商店屏幕）。
 - **交还依赖对话 action**：`turnIn` 只由 `quest:QID` action 触发（任务 `status='done'` 时）。含 `turnIn` 的任务，其 giver/turnIn NPC 的对话树**必须**列出对应 `quest:QID`，否则无法交还、主线卡死（曾因村长对话树漏配 Q2/Q3 的 action 导致第一章断链）。
-- **自动接取的任务首阶段不放 talk**：`unlocks` 链接取的任务没有「对话接取」步骤，接取时不会立即推进 `talk` 目标；若首阶段含 `talk` 目标，玩家回村需**两次**对话才能交还。首阶段应只放 kill/collect/explore 目标。
+- **交还时自动接取的任务**（v1.6.0）：`unlocks` 链在交还对话中自动接取后续任务时，若新任务首阶段含对**当前 NPC** 的 `talk` 目标，同次对话立即推进——玩家无需为同一 NPC 跑第二趟（`runActions` 交还后检测新接取任务并补一次 talk 进度）。首阶段 talk 目标指向**其他 NPC** 的仍需玩家自行前往。
 - `chooseOption(game, session, i)`：执行选项 `effect`（setFlag / giveItem / removeItem / gold / hp/mp / 接任务），跳转 `to` 节点。
 - `effect` / `cond` 详见 [data-schemas.md](data-schemas.md#对话-dialoguejs)。
 - **打字机回调防御**：`typeText` 的异步回调可能晚于屏幕切换触发（对话结束/跳转/开商店接管屏幕），访问已卸载 DOM 节点会抛错。所有回调内对目标节点做空检查（`if (el)` / `if (btn.isConnected)`），见 `story`/`interlude` 的 `btn-continue`、`renderDlgView` 的 `dlg-options`、`showStoryModal` 的 `modal-btn`。
@@ -147,7 +147,7 @@ base  *= skill.power                 // 普攻 power = 1
 
 ## 统一顶部导航栏（ui/screens.js）
 
-v1.4.1 起，所有游戏内屏幕（地图/区域/地点/商店/菜单/背包/任务/状态/存档/读档/关于）使用统一的 **sticky 顶部导航栏**：
+v1.4.1 起，所有游戏内屏幕（地图/区域/地点/商店/菜单/背包/任务/状态/物品百科/存档/读档/关于）使用统一的 **sticky 顶部导航栏**：
 
 - **左侧**「← 返回」按钮：上下文感知，地点→区域、商店→地点、菜单→返回游戏、子屏→菜单。地图页无返回按钮（探索根节点）。
 - **中间**：屏幕标题。
@@ -166,7 +166,7 @@ v1.4.1 起，所有游戏内屏幕（地图/区域/地点/商店/菜单/背包/�
 | 地点 | 所属区域 | `leaveLocation()` |
 | 商店 | 当前地点 | `closeShop()` |
 | 菜单 | 返回游戏 | `backFromMenu()` |
-| 背包/状态/存档 | 菜单 | `showScreen('menu')` |
+| 背包/状态/物品百科/存档 | 菜单 | `showScreen('menu')` |
 | 任务日志 | 菜单/地图（根据 `back` 参数） | `showScreen('menu')` / `showScreen('map')` |
 | 读档/关于（游戏中） | 菜单 | `showScreen('menu')` |
 | 读档/关于/新游戏（标题） | 标题 | 底部 backBtn |
@@ -190,3 +190,11 @@ v1.5.0 起，地图/区域/地点三个核心游戏屏幕底部增加 sticky 快
 
 - `acceptQuest` 接取时扫描首阶段 `collect` 目标，预填背包中已有物品的计数，随后立即 `checkStage`。
 - `checkStage` 对 `collect` 目标**同步库存计数**——即使物品在接取前通过宝箱/事件获得，或已有存档中任务已 active 但 count 为 0，均能在下一轮 `progressObjective`（或其他目标推进）触发时正确识别并推进阶段。彻底消除「提前拿任务物品 → 接取后无法提交」的卡关问题。
+
+## 物品百科（v1.6.0）
+
+菜单新增「📖 物品百科」屏幕（`SCREENS.codex`），全量道具按类型分组（消耗品/武器/防具/饰品/材料/任务道具）展示：
+
+- 每张卡片：图标、名称+稀有度、持有数量（背包+已装备）、基准价、等级需求、属性加成/恢复效果、描述。
+- **获取途径自动汇总**：`buildItemSources()` 从内容数据反向扫描——开局携带（`createInitialState`）、商店库存、敌人掉落、宝箱、事件 `then.items`、任务奖励 `rewards.items`。**零硬编码**：新增任何内容条目，百科自动纳入，无需改引擎。
+- 无任何来源的道具显示「— 暂无获取途径 —」（可据此发现内容缺口，如尚未投放的道具）。

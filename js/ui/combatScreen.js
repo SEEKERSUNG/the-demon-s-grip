@@ -11,6 +11,7 @@ let game = null;
 let selectedEnemy = null;
 let pendingSkill = null;
 let commandTab = 'attack';
+let lastCombat = null;   // 检测新战斗：重置跨战斗残留的指令状态
 
 function refresh() { renderCombatScreen(game, {}); }
 
@@ -19,6 +20,13 @@ export function renderCombatScreen(g, ctx = {}) {
   game = g;
   const combat = game.combat;
   if (!combat) { showScreen('map'); return; }
+  if (combat !== lastCombat) {
+    // 新一场战斗：指令页归位攻击、清空目标选择与待释放技能
+    lastCombat = combat;
+    commandTab = 'attack';
+    selectedEnemy = null;
+    pendingSkill = null;
+  }
 
   const alive = combat.enemies.filter((e) => e.alive);
   if (selectedEnemy && !alive.some((e) => e.ref === selectedEnemy)) selectedEnemy = alive[0]?.ref || null;

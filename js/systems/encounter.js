@@ -21,12 +21,3 @@ export function startLocationBattle(game, loc, context = {}) {
     ...context,
   });
 }
-
-// 指定 BOSS 战
-export function startBossBattle(game, bossId, context = {}) {
-  return startCombat(game, [bossId], {
-    type: 'boss',
-    bossId,
-    ...context,
-  });
-}

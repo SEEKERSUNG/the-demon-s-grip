@@ -2,18 +2,18 @@
 // 战斗屏幕见 combatScreen.js。
 
 import { CONTENT } from '../content/index.js';
-import { saveToSlot, loadFromSlot, listSlots, slotInfo, SLOT_COUNT, deleteSlot, saveAutoSlot, loadAutoSlot, autoSlotInfo, deleteAutoSlot, exportSaveData, importSaveData, importSaveToSlot } from '../core/save.js';
+import { listSlots, slotInfo, SLOT_COUNT, deleteSlot, autoSlotInfo, exportSaveData, importSaveData, importSaveToSlot } from '../core/save.js';
+import { createInitialState } from '../core/state.js';
 import * as player from '../systems/player.js';
 import * as inventory from '../systems/inventory.js';
 import * as equipment from '../systems/equipment.js';
 import * as skills from '../systems/skills.js';
 import * as explore from '../systems/explore.js';
 import * as encounter from '../systems/encounter.js';
-import * as quests from '../systems/quests.js';
 import * as dialogue from '../systems/dialogue.js';
 import * as shop from '../systems/shop.js';
 import * as npc from '../systems/npc.js';
-import { esc, itemById, skillById, locById, regionById, questById, npcById, pct, toast, rarityText, itemStatsText, slotLabel, doSave, doLoad, startNewGame, backToTitle, openMenu, afterCombatReturn, loadAutoSave } from './main.js';
+import { esc, itemById, locById, regionById, npcById, pct, toast, rarityText, itemStatsText, slotLabel, backToTitle, doLoad, loadAutoSave } from './main.js';
 import { GAME_VERSION, GAME_TITLE } from '../core/version.js';
 
 const app = document.getElementById('app');
@@ -134,6 +134,27 @@ function bottomBar() {
   </div>`;
 }
 
+// ===== 物品百科 =====
+// 获取途径索引：从内容数据反向扫描（开局携带/商店/掉落/宝箱/事件/任务奖励），零硬编码。
+// 新增内容条目后无需改动，百科自动纳入。
+function buildItemSources() {
+  const map = {};
+  const add = (id, text) => { if (id) (map[id] ||= []).push(text); };
+  const init = createInitialState();
+  for (const s of init.inventory) add(s.id, '开局携带');
+  for (const id of Object.values(init.player.equipped)) add(id, '开局携带');
+  for (const s of CONTENT.shops) for (const st of s.stock) add(st.item, `商店：${s.name}`);
+  for (const e of CONTENT.enemies) for (const d of e.drops || []) add(d.item, `击败${e.name}掉落`);
+  for (const loc of CONTENT.locations) {
+    for (const c of loc.chests || []) {
+      for (const id of (c.item != null ? [c.item] : (c.items || []))) add(id, `宝箱：${loc.name}`);
+    }
+  }
+  for (const ev of CONTENT.events) for (const id of ev.then?.items || []) add(id, `事件：${ev.title || ev.id}`);
+  for (const q of CONTENT.quests) for (const id of q.rewards?.items || []) add(id, `任务奖励：${q.name}`);
+  return map;
+}
+
 // ===== 屏幕实现 =====
 export const SCREENS = {
   // ----- 标题 -----
@@ -183,7 +204,7 @@ export const SCREENS = {
         ${Array.from({ length: SLOT_COUNT }, (_, i) => `
           <div class="save-slot">
             <div class="slot-info"><b>存档位 ${i + 1}</b><br><span class="slot-time">${slotLabel(i)}</span></div>
-            <button class="primary" ${slotInfo(i) ? '' : ''} onclick="GRPG.startNewGame(${i})">${slotInfo(i) ? '覆盖开新局' : '开始冒险'}</button>
+            <button class="primary" onclick="GRPG.startNewGame(${i})">${slotInfo(i) ? '覆盖开新局' : '开始冒险'}</button>
           </div>`).join('')}
       </div>
       ${backBtn('title')}
@@ -429,6 +450,7 @@ export const SCREENS = {
           <li onclick="GRPG.showScreen('inventory')"><b>🎒 背包</b></li>
           <li onclick="GRPG.showScreen('quests')"><b>📋 任务</b></li>
           <li onclick="GRPG.showScreen('status')"><b>🧙 状态</b></li>
+          <li onclick="GRPG.showScreen('codex')"><b>📖 物品百科</b></li>
           <li onclick="GRPG.showScreen('save')"><b>💾 存档</b></li>
           <li onclick="GRPG.showScreen('load',{back:'menu'})"><b>📂 读档</b></li>
           <li onclick="GRPG.goToMap()"><b>🗺️ 世界地图</b></li>
@@ -572,6 +594,53 @@ export const SCREENS = {
             </div></li>`).join('') : '<div class="dim">尚未学会任何技能</div>'}
         </div>
       </div>
+    </div>`;
+  },
+
+  // ----- 物品百科 -----
+  codex({ back = 'menu' } = {}) {
+    const sources = buildItemSources();
+    // 持有数量 = 背包 + 已装备
+    const owned = {};
+    for (const s of game.state.inventory) owned[s.id] = (owned[s.id] || 0) + s.qty;
+    for (const slot of equipment.SLOTS) {
+      const id = game.state.player.equipped[slot];
+      if (id) owned[id] = (owned[id] || 0) + 1;
+    }
+    const groups = [
+      ['consumable', '🧪 消耗品'], ['weapon', '⚔️ 武器'], ['armor', '🛡️ 防具'],
+      ['accessory', '💍 饰品'], ['material', '🪨 材料'], ['quest', '📜 任务道具'],
+    ];
+    const backAction = back === 'quick' ? "GRPG.quickBack()" : "GRPG.showScreen('menu')";
+    app.innerHTML = `
+    <div class="screen">
+      ${topNav(backAction, '📖 物品百科')}
+      ${hudHtml()}
+      <div class="panel"><div class="small dim">全 ${CONTENT.items.length} 种道具 · 含稀有度、属性与获取途径（由内容数据自动汇总）</div></div>
+      ${groups.map(([type, label]) => {
+        const items = CONTENT.items.filter((it) => it.type === type);
+        if (!items.length) return '';
+        return `
+        <div class="panel">
+          <div class="panel-title">${label} · ${items.length} 种</div>
+          <div class="codex-grid">
+            ${items.map((it) => {
+              const stats = itemStatsText(it);
+              const src = sources[it.id];
+              const own = owned[it.id];
+              return `
+              <div class="item-card rarity-${it.rarity}">
+                <div class="i-emoji">${it.emoji}</div>
+                <div class="i-name">${esc(it.name)}${rarityText(it.rarity)}</div>
+                <div class="i-qty">${own ? `持有 ×${own}` : '未持有'}${it.price ? ` · 💰${it.price}` : ''}${it.levelReq ? ` · 需 Lv.${it.levelReq}` : ''}</div>
+                ${stats ? `<div class="i-stats">${esc(stats)}</div>` : ''}
+                <div class="i-desc">${esc(it.desc)}</div>
+                ${src ? `<div class="i-src">${src.map(esc).join('；')}</div>` : '<div class="i-src none">— 暂无获取途径 —</div>'}
+              </div>`;
+            }).join('')}
+          </div>
+        </div>`;
+      }).join('')}
     </div>`;
   },
 

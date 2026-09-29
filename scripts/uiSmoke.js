@@ -135,6 +135,19 @@ GRPG.showScreen('status');
 assert(app.innerHTML.includes('攻击'), '状态面板渲染');
 GRPG.openMenu();
 assert(app.innerHTML.includes('☰ 菜单'), '菜单渲染');
+assert(app.innerHTML.includes('物品百科'), '菜单含物品百科入口');
+
+console.log('\n=== 物品百科 ===');
+GRPG.showScreen('codex');
+assert(app.innerHTML.includes('物品百科'), '物品百科渲染');
+assert(app.innerHTML.includes('铁剑'), '百科含武器条目');
+assert(app.innerHTML.includes('需 Lv.2'), '百科显示装备等级需求');
+assert(app.innerHTML.includes('商店：阿伟的铁匠铺'), '百科显示商店获取途径');
+assert(app.innerHTML.includes('击败'), '百科显示掉落获取途径');
+assert(app.innerHTML.includes('开局携带'), '百科显示开局携带来源');
+assert(app.innerHTML.includes('任务奖励'), '百科显示任务奖励来源');
+assert(app.innerHTML.includes('持有 ×'), '百科显示持有数量');
+GRPG.showScreen('menu');
 
 console.log('\n=== 装备槽 ===');
 {

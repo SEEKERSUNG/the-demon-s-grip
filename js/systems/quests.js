@@ -150,18 +150,4 @@ function afterComplete(game, quest) {
   game.events.emit('quest:completed', { quest });
 }
 
-// 玩家在当前 NPC 可交还/可接取的任务
-export function questsAtNpc(game, npc) {
-  const { state, CONTENT } = game;
-  const out = { canAccept: [], canTurnIn: [] };
-  for (const qid of npc.quests || []) {
-    const quest = getQuest(CONTENT, qid);
-    if (!quest) continue;
-    const qs = state.quests[qid];
-    if (!qs) out.canAccept.push(quest);
-    else if (qs.status === 'done') out.canTurnIn.push(quest);
-  }
-  return out;
-}
-
 function state(game) { return game.state; }

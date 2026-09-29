@@ -42,8 +42,3 @@ export function finishChapter(game, chapter) {
 export function chapterObjectivesDone(game, chapter) {
   return (chapter.objectives || []).every((qid) => game.state.quests[qid]?.status === 'completed');
 }
-
-export function chapterByRegion(game, regionId) {
-  const r = getRegion(game.CONTENT, regionId);
-  return r ? chapterByIndex(game.CONTENT, r.chapter) : null;
-}

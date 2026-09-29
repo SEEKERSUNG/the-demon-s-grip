@@ -61,7 +61,14 @@ function runActions(game, session, actions) {
             if (session.ctx.npc) quests.progressObjective(game, { type: 'talk', target: session.ctx.npc });
           }
         } else if (qs.status === 'done') {
+          // 交还可能经 unlockChain 自动接取后续任务；新任务若首阶段含对当前 NPC 的
+          // talk 目标，同次对话即视为「已交谈」，立即推进（免玩家跑第二趟）
+          const known = new Set(Object.keys(game.state.quests));
           quests.turnIn(game, q);
+          const newly = Object.keys(game.state.quests).filter((id) => !known.has(id));
+          if (newly.length && session.ctx.npc) {
+            quests.progressObjective(game, { type: 'talk', target: session.ctx.npc });
+          }
         }
       }
     } else if (typeof a === 'string' && a.startsWith('flag:')) {

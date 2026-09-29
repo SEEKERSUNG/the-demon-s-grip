@@ -22,10 +22,6 @@ export function getStats(state, items = []) {
   };
 }
 
-export function isAlive(state) {
-  return state.player.cur.hp > 0;
-}
-
 export function addXp(game, xp) {
   const { state } = game;
   state.player.xp += Math.max(0, xp);
