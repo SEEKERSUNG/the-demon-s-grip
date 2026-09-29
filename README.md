@@ -1,6 +1,6 @@
 # 执魔 · 浏览器单机 RPG
 
-> **v1.5.2** · 零构建 · 完全数据驱动 · 原生 HTML/CSS/JS + ES Modules
+> **v1.5.3** · 零构建 · 完全数据驱动 · 原生 HTML/CSS/JS + ES Modules
 
 🕹️ **在线试玩**：<https://seekersung.github.io/the-demon-s-grip/>　·　📦 **GitHub**：<https://github.com/SEEKERSUNG/the-demon-s-grip>
 
@@ -78,12 +78,25 @@ doc/                     技术文档（架构 / 数据Schema / 系统 / 扩展 
 
 ```bash
 npm run check         # 内容引用完整性校验（改内容后必跑）
-npm run playthrough   # 无DOM回放：三章主线端到端断言（26项，含对话路径）
-npm run uiSmoke       # UI冒烟：最小DOM mock 驱动关键交互（51项）
+npm run playthrough   # 无DOM回放：三章主线端到端断言（34项，含对话路径）
+npm run uiSmoke       # UI冒烟：最小DOM mock 驱动关键交互（55项）
 npm run balance       # 数值平衡：正常玩家+商店补给通关第一章
 ```
 
 ## 更新日志
+
+### v1.5.3 — 战斗/任务/装备关键修复
+
+**战斗系统修复：**
+- 修复「防御」指令与玩家增益技能（狂暴/魔王的馈赠）自 v1.1.0 起的崩溃：战斗单位缺少 `buffTurns` 初始化，写入增益持续回合时抛 TypeError，点击后无响应
+- 指令校验提前到敌方回合之前：慢速玩家输入无效指令（MP 不足/目标倒下）不再白挨敌方一击（回合不推进）
+
+**任务系统修复：**
+- 修复 explore 目标软锁：接取任务前已访问过目标地点时（如先逛沦陷之城再交「军令如山」），「军饷疑云」的探索目标永久无法推进。现在 checkStage 对 explore 目标同步 `visitedLocations`（与 collect 目标同步库存同一策略）
+
+**装备反馈修复：**
+- 修复等级不足时点装备误报「已装备」：`equipItem` 改为返回 `{ok,msg}`，等级不足提示「等级不足，需要 Lv.X（当前 Lv.Y）」，已装备同款提示「已经装备了该物品」
+- 背包装备卡片与商店在等级不足时显示「🔒 需 Lv.X」，商店购买按钮同时置灰
 
 ### v1.5.2 — Bug 修复与代码清理
 

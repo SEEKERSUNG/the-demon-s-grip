@@ -153,7 +153,7 @@ console.log('\n=== 装备槽 ===');
   // 已装备同款再点 → 不吞背包同款（回归：同一装备再次装备消失合并）
   const ringBefore = countOf('ACC_RING_GOLD');
   const ringEquipRes = g.equipment.equipItem(g, 'ACC_RING_GOLD');
-  assert(ringEquipRes === false, '已装备同款再装备被拒绝');
+  assert(ringEquipRes.ok === false, '已装备同款再装备被拒绝');
   assert(countOf('ACC_RING_GOLD') === ringBefore, '已装备同款再点不吞背包');
   assert(g.state.inventory.filter((s) => s.id === 'ACC_RING_GOLD').length <= 1, '背包同物品不拆成重复条目');
 
@@ -172,6 +172,16 @@ console.log('\n=== 装备槽 ===');
   assert(g.state.player.equipped.weapon === null, '卸下武器后槽位为空');
   assert(countOf('WPN_IRON') === 2, '卸下武器回背包合并计数');
   assert(g.state.inventory.filter((s) => s.id === 'WPN_IRON').length === 1, '卸下武器不产生重复条目');
+
+  // 等级不足装备 → 拒绝并提示需求等级（回归：点装备误报「已装备」，升级后才能装）
+  g.state.player.level = 1; // 铁剑 levelReq 2
+  const lvRes = g.equipment.equipItem(g, 'WPN_IRON');
+  assert(lvRes.ok === false && lvRes.msg.includes('等级不足') && lvRes.msg.includes('Lv.2'), '等级不足装备被拒绝并提示需求等级');
+  assert(g.state.player.equipped.weapon !== 'WPN_IRON', '等级不足时未实际装备');
+  assert(countOf('WPN_IRON') === 2, '等级不足时不消耗背包物品');
+  GRPG.showScreen('inventory', { tab: 'equip' });
+  assert(app.innerHTML.includes('需 Lv.2'), '背包装备卡片显示等级需求');
+  g.state.player.level = 12; // 恢复等级，不影响后续用例
 
   // 背包卖出已移除——物品只能通过商店卖出（商店测试覆盖卖功能）
   console.log('  ✓ 背包卖出已改为仅商店可卖');

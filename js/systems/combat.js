@@ -81,6 +81,10 @@ export function aliveEnemies(combat) {
 export function doPlayerAction(game, combat, action) {
   if (combat.phase !== 'player') return { ok: false, reason: '当前无法行动' };
 
+  // 指令校验先于敌方回合：慢速玩家输入无效指令（MP 不足/目标倒下等）不该白挨一击
+  const invalid = validatePlayerAction(game, combat, action);
+  if (invalid) return { ok: false, reason: invalid };
+
   // 玩家先手
   const playerFirst = combat.playerUnit.stats.spd >= Math.max(...combat.enemies.map((e) => e.stats.spd));
   if (playerFirst) {
@@ -106,6 +110,46 @@ export function doPlayerAction(game, combat, action) {
     combat.enemies.forEach((e) => { if (e.alive) tickBuffs(e); });
   }
   return { ok: true };
+}
+
+// 校验玩家指令是否可执行（无副作用）。返回失败原因或 null。
+// 与 applyPlayerAction 的内部校验保持一致；提前到敌方回合前执行，避免慢速玩家白挨一击。
+function validatePlayerAction(game, combat, action) {
+  const u = combat.playerUnit;
+  switch (action.type) {
+    case 'attack': {
+      const target = combat.enemies.find((e) => e.ref === action.target && e.alive);
+      return target ? null : '目标已倒下';
+    }
+    case 'skill': {
+      const skill = getSkill(game.CONTENT, action.skillId);
+      if (!skill) return '未知技能';
+      if (!game.skills.usableSkills(game).some((s) => s.id === skill.id)) return '尚未学会';
+      if (u.curMp < (skill.mpCost || 0)) return 'MP 不足';
+      let targets;
+      if (skill.target === 'all_enemies') targets = aliveEnemies(combat);
+      else if (skill.target === 'self') targets = [u];
+      else targets = [combat.enemies.find((e) => e.ref === action.target && e.alive)];
+      if (!targets || targets.length === 0 || targets[0] === undefined) return '目标已倒下';
+      return null;
+    }
+    case 'item': {
+      // 满血判定以战斗单位值为准（state.player.cur 在战斗中未同步）
+      const item = game.CONTENT.items.find((x) => x.id === action.itemId);
+      if (!item || !item.usable) return '无法使用';
+      if (inventory.countItem(game.state, action.itemId) <= 0) return '数量不足';
+      if (item.effect) {
+        const healHp = Math.min(item.effect.hp || 0, u.stats.maxHp - u.curHp);
+        const healMp = Math.min(item.effect.mp || 0, u.stats.maxMp - u.curMp);
+        if ((item.effect.hp || 0) + (item.effect.mp || 0) > 0 && healHp <= 0 && (item.effect.mp ? healMp <= 0 : true)) {
+          return 'HP/MP 已满，无需使用';
+        }
+      }
+      return null;
+    }
+    default:
+      return null; // defend / flee 恒可执行
+  }
 }
 
 function afterPlayerPhase(game, combat) {

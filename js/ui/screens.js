@@ -461,8 +461,9 @@ export const SCREENS = {
     }).join('');
 
     const gridHtml = (tab === 'equip' ? eqItems : bagItems).map(({ slot, def }) => {
+      const lvLocked = !!def.levelReq && game.state.player.level < def.levelReq;
       const click = def.usable ? `onclick="GRPG.useItem('${def.id}')"` : (def.slot ? `onclick="GRPG.equipItem('${def.id}')"` : '');
-      const clickDesc = def.usable ? '点击使用' : (def.slot ? '点击装备' : '');
+      const clickDesc = def.usable ? '点击使用' : (def.slot ? (lvLocked ? `🔒 需 Lv.${def.levelReq}` : '点击装备') : '');
       const stats = itemStatsText(def); // 装备属性加成 / 消耗品恢复效果
       return `
       <div class="item-card rarity-${def.rarity}" ${click}>
@@ -641,15 +642,16 @@ export const SCREENS = {
         ${stock.map((st) => {
           const def = itemById(st.item);
           const soldOut = st.remaining != null && st.remaining <= 0;
+          const lvLocked = !!def.levelReq && game.state.player.level < def.levelReq;
           return `
           <div class="shop-row">
             <span class="emoji" style="font-size:1.6rem">${def.emoji}</span>
             <div class="s-info">
               <div class="s-name">${esc(def.name)}</div>
-              <div class="small dim">${itemStatsText(def)}${st.remaining != null ? ` · 剩 ${st.remaining}` : ''}</div>
+              <div class="small dim">${itemStatsText(def)}${lvLocked ? ` · 🔒 需 Lv.${def.levelReq}` : ''}${st.remaining != null ? ` · 剩 ${st.remaining}` : ''}</div>
             </div>
             <div class="s-price">💰 ${st.cost}</div>
-            <button ${soldOut || gold < st.cost ? 'disabled' : ''} onclick="GRPG.buy('${shopId}','${st.item}')">购买</button>
+            <button ${soldOut || gold < st.cost || lvLocked ? 'disabled' : ''} onclick="GRPG.buy('${shopId}','${st.item}')">购买</button>
           </div>`;
         }).join('')}
       </div>
@@ -921,19 +923,20 @@ export function goToMap() {
 
 export function useItem(id) {
   const res = inventory.useItem(game, id);
-  toast(res.ok ? res.msg : res.msg);
+  toast(res.msg);
   const back = uiState.quickReturn ? 'quick' : 'menu';
   showScreen('inventory', { tab: uiState.inventoryTab || 'bag', back });
 }
 export function equipItem(id) {
-  equipment.equipItem(game, id);
-  toast('已装备');
+  const res = equipment.equipItem(game, id);
+  toast(res.ok ? res.msg : '❌ ' + res.msg);
   const back = uiState.quickReturn ? 'quick' : 'menu';
   showScreen('inventory', { tab: 'equip', back });
 }
 
 export function unequip(slot) {
   equipment.unequip(game, slot);
+  toast('已卸下');
   const back = uiState.quickReturn ? 'quick' : 'menu';
   showScreen('inventory', { tab: 'equip', back });
 }

@@ -29,5 +29,6 @@ export function playerUnit(game) {
     curHp: state.player.cur.hp,
     curMp: state.player.cur.mp,
     buffs: { atkMult: 1, defMult: 1 },
+    buffTurns: {},   // 与 spawnEnemy 一致：防御/buff 持续回合写在这里
   };
 }

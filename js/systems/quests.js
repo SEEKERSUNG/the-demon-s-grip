@@ -91,6 +91,11 @@ function checkStage(game, quest, qs) {
         const owned = inventory.countItem(state, ob.target);
         if (owned > cur) { qs.counts[key] = owned; cur = owned; }
       }
+      // explore 目标：已到访过即视为达成，覆盖「接取前已进入地点」场景（enterLocation 仅首次访问推进）
+      if (ob.type === 'explore' && cur < (ob.n || 1) && state.visitedLocations.includes(ob.target)) {
+        qs.counts[key] = ob.n || 1;
+        cur = ob.n || 1;
+      }
       if (cur < (ob.n || 1)) complete = false;
     });
     if (!complete) break;

@@ -196,6 +196,54 @@ console.log('\n=== 对话驱动·第一章主线（真实玩家路径）===');
   assert(!!g.state.quests[bossCove.reqQuest], '黑鳞崖 reqQuest 满足（已接取决战任务）');
 }
 
+console.log('\n=== 战斗防御/增益回归（buffTurns 修复）===');
+{
+  const g = createGame({ seed: 71 });
+  godMode(g); // Lv25 → learnLevelSkills 已含狂暴（Lv15）
+  // 快速玩家防御：当回合敌攻已消费，回合末过期
+  let c = g.combatSys.startCombat(g, ['SLIME'], {});
+  const r1 = g.combatSys.doPlayerAction(g, c, { type: 'defend' });
+  assert(r1.ok === true, '防御指令正常执行（不抛 TypeError）');
+  assert(c.playerUnit.buffs.defMult === 1, '快速玩家防御当回合生效后过期');
+  // 玩家增益技能：狂暴攻击倍率生效
+  c = g.combatSys.startCombat(g, ['SLIME'], {});
+  const r2 = g.combatSys.doPlayerAction(g, c, { type: 'skill', skillId: 'BERSERK' });
+  assert(r2.ok === true, '增益技能（狂暴）正常执行（不抛 TypeError）');
+  assert(c.playerUnit.buffs.atkMult === 1.4, '狂暴攻击增益 1.4 生效');
+  // 慢速玩家防御：持续到下回合敌攻
+  g.state.player.base.spd = 1;
+  c = g.combatSys.startCombat(g, ['BAT'], {});
+  const r3 = g.combatSys.doPlayerAction(g, c, { type: 'defend' });
+  assert(r3.ok === true && c.playerUnit.buffs.defMult === 2 && c.playerUnit.buffTurns.defMult === 1,
+    '慢速玩家防御 defMult=2 且持续到下回合敌攻');
+  // 慢速玩家无效指令（MP 不足）：不触发敌方回合、不白挨一击、回合不推进
+  g.state.player.base.spd = 1;
+  g.state.player.cur.mp = 0;
+  c = g.combatSys.startCombat(g, ['BAT'], {});
+  const hpBefore = c.playerUnit.curHp;
+  const turnBefore = c.turn;
+  const r4 = g.combatSys.doPlayerAction(g, c, { type: 'skill', skillId: 'FIREBALL' });
+  assert(r4.ok === false && r4.reason === 'MP 不足', 'MP 不足的技能指令被拒绝');
+  assert(c.playerUnit.curHp === hpBefore && c.turn === turnBefore, '无效指令不触发敌方回合（不白挨一击、回合不推进）');
+}
+
+console.log('\n=== explore 目标接取前已访问回归（软锁修复）===');
+{
+  const g = createGame({ seed: 83 });
+  godMode(g);
+  // 玩家先进入地点，之后才接取含该 explore 目标的任务 → 不应卡死
+  const village = CONTENT.locations.find((l) => l.id === 'LOC_VILLAGE');
+  explore.enterLocation(g, village);
+  const fakeQuest = {
+    id: 'QT_TEST_EXPLORE', name: '探索回归验证', chapter: 1, type: 'side',
+    stages: [{ id: 's1', desc: '访问渔村。', objectives: [{ type: 'explore', target: 'LOC_VILLAGE', n: 1 }] }],
+    rewards: {},
+  };
+  g.CONTENT.quests.push(fakeQuest);
+  quests.acceptQuest(g, fakeQuest);
+  assert(g.state.quests.QT_TEST_EXPLORE?.status === 'completed', '接取前已访问的地点 → explore 目标自动达成（不再软锁）');
+}
+
 console.log('\n====================================');
 console.log(`通过 ${passed} 项，失败 ${failed} 项`);
 if (failed > 0) process.exit(1);

@@ -39,15 +39,18 @@ function addToInventory(state, itemId, qty) {
   else state.inventory.push({ id: itemId, qty });
 }
 
+// 装备物品。返回 { ok, msg }：等级不足/已装备同款等失败原因供 UI 提示。
 export function equipItem(game, itemId) {
   const { state } = game;
   const item = game.CONTENT.items.find((x) => x.id === itemId);
-  if (!item || !isEquippable(item)) return false;
-  if (item.levelReq && game.state.player.level < item.levelReq) return false;
+  if (!item || !isEquippable(item)) return { ok: false, msg: '该物品无法装备' };
+  if (item.levelReq && game.state.player.level < item.levelReq) {
+    return { ok: false, msg: `等级不足，需要 Lv.${item.levelReq}（当前 Lv.${game.state.player.level}）` };
+  }
   const slot = slotFor(item);
   const prev = state.player.equipped[slot];
   // 已装备同一件 → 无需操作（避免误扣背包里的同款）
-  if (prev === itemId) return false;
+  if (prev === itemId) return { ok: false, msg: '已经装备了该物品' };
   state.player.equipped[slot] = itemId;
   // 原装备退回背包（合并计数，不产生重复条目）
   if (prev) addToInventory(state, prev, 1);
@@ -59,7 +62,7 @@ export function equipItem(game, itemId) {
   }
   game.events.emit('inventory:changed');
   game.events.emit('player:changed', { reason: 'equip' });
-  return true;
+  return { ok: true, msg: `已装备 ${item.name}` };
 }
 
 export function unequip(game, slot) {

@@ -9,7 +9,8 @@
 - `startCombat(game, enemyIds, context)`：构建敌我单位，`game.combat = combat`，广播 `combat:start`。
 - `doPlayerAction(game, combat, action)`：`{ type:'attack'|'skill'|'item'|'defend'|'flee', target, skillId, itemId }`。
   - 按速度决定先手：玩家先手则 玩家行动 → 敌人行动；敌人先手反之。
-  - 每回合结束 `tickBuffs` 结算增益持续回合。
+  - **指令校验先于敌方回合**（v1.5.3）：`validatePlayerAction` 无副作用地校验目标/MP/道具满血等条件，失败直接返回、不消耗回合——慢速玩家输入无效指令不再白挨敌方一击。
+  - 每回合结束 `tickBuffs` 结算增益持续回合。玩家战斗单位与敌人一样带 `buffs` + `buffTurns`（v1.5.3 修复：此前玩家单位缺 `buffTurns`，「防御」与增益技能写入时抛 TypeError）。
 - **技能 MP 扣除**：先校验目标有效再扣 MP，避免目标无效时白扣（v1.5.2 修复）。
 - **防御与先手**：玩家先手时防御 `turns=1`（本回合敌攻即消费）；慢速玩家 `turns=2`（本回合敌攻已过，防御持续到下回合敌攻才生效）（v1.5.2 修复）。
 - **技能校验**：使用技能须在 `usableSkills(game)`（已学会 + 装备 `skillUnlocks` 解锁）集合内，否则返回「尚未学会」——装备解锁的技能在战斗中可用。
@@ -56,6 +57,7 @@ base  *= skill.power                 // 普攻 power = 1
   - **counts 按 `阶段:目标` 隔离**（`${stage}:${oi}`），避免跨阶段串计数。
   - 触发方：talk（对话 `startDialogue` 时推进）、kill（战斗胜利）、explore（`enterLocation`）、collect（`addItem`）。
 - `checkStage`：当前阶段全部目标达标 → `stage+1`；到达最后阶段后 `turnIn` 存在则 `done`，否则直接发奖励 + `afterComplete`。
+  - **collect 目标同步库存计数**；**explore 目标同步 `visitedLocations`**（v1.5.3）：即使物品/地点在接取任务前已获得/进入，也能在下一轮推进时正确识别——彻底消除「提前拿物品/先逛地点 → 接取后无法提交」的卡关。
 - `turnIn`（对话 `quest:QID` action 调用）：发奖励 + `afterComplete`。
 - `completeQuest`：强制完成（战斗 `onWin.quests` 等场景）。
 - `afterComplete`：置 `onComplete.flags`、`unlockChain(unlocks)`（自动接取后续）、广播 `quest:completed`。
@@ -105,6 +107,7 @@ base  *= skill.power                 // 普攻 power = 1
 
 - 槽位：`SLOTS = ['weapon', 'armor', 'accessory', 'accessory2']`。
 - `equipItem(game, itemId)`：按 `slotFor` 确定槽位；校验 `levelReq`（等级不足拒绝）；已装备同款直接返回（不误扣背包）；原装备**退回背包并合并计数**；从背包扣除一件新装备。
+  - 返回 `{ ok, msg }`（v1.5.3）：等级不足 → `等级不足，需要 Lv.X（当前 Lv.Y）`；已装备同款 → `已经装备了该物品`；UI 据此 toast，背包卡片/商店在等级不足时显示「🔒 需 Lv.X」。
   - 退回旧装备用合并计数而非 push 新条目，避免同物品拆成多个条目（修复过"换装后突然多一个"）。
   - `slotFor` 尊重数据 `slot`：饰品 `accessory`/`accessory2` 各归其位（修复过"新装备挤掉旧装备"的问题）。
 - `unequip(game, slot)`：装备回背包（合并计数）。
