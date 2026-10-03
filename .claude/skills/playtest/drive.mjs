@@ -1,6 +1,6 @@
 // 真实玩家模拟：无头 Edge 驱动游戏页面，完整走第一章核心循环 + 本次新功能
 // 覆盖：新档/章节开场/地图/对话接任务/商店(等级锁+买+卖)/旅店/宝箱/事件/
-//       战斗(防御/道具/逃跑/技能+选目标/团灭复活)/任务交还/装备/状态/物品百科/
+//       战斗(防御/道具/逃跑/技能+选目标/团灭复活)/任务交还与快速前往/装备/状态/物品百科/
 //       自动战斗(指令栏入口/节拍/续场/停止/撤退)/存读档
 import { chromium } from 'playwright-core';
 
@@ -72,7 +72,7 @@ async function restAtInn() {
 console.log('\n=== 标题与新档 ===');
 await page.goto(BASE, { waitUntil: 'load' });
 await page.waitForSelector('.title-screen', { timeout: 10000 });
-check('标题屏渲染（版本号）', (await page.textContent('.version')).includes('v1.7.0'));
+check('标题屏渲染（版本号）', (await page.textContent('.version')).includes('v1.7.1'));
 await shot('title');
 await page.click('button:has-text("新的旅程")');
 await page.waitForSelector('button:has-text("开始冒险")');
@@ -104,7 +104,7 @@ check('对话渲染（说话人）', (await page.textContent('.speaker')) === '�
 await shot('dialogue-elder');
 await endDialogue();
 
-// ============ 5. 快捷栏 → 任务日志 ============
+// ============ 5. 快捷栏 → 任务日志 → 快速前往 ============
 await page.click('.bottom-bar button:has-text("任务")');
 await page.waitForSelector('.screen:has-text("进行中的任务")');
 check('任务日志显示渔村之殇', (await page.textContent('.screen')).includes('渔村之殇'));
@@ -113,6 +113,15 @@ check('任务日志显示渔村之殇', (await page.textContent('.screen')).incl
   check(`任务目标显示地图路径（${navLines.length} 行）`,
     navLines.length >= 1 && navLines.some((t) => t.includes('世界地图 →')));
 }
+// 快速前往：talk 目标在当前渔村（不显示按钮），kill 目标在染血滩涂 → 点击直达
+check('任务路径显示快速前往按钮', (await page.locator('.obj-path .nav-go').count()) >= 1);
+await page.click('.obj-path .nav-go >> nth=0');
+await page.waitForSelector('li:has-text("离开此地")', { timeout: 5000 });
+check('点击前往 → 直达目标地点', await page.evaluate(() => window.GRPG.getGame().state.location === 'LOC_SEASHORE'));
+await shot('quest-quick-go');
+await gotoVillage(); // 恢复现场：回渔村，后续流程从渔村继续
+await page.click('.bottom-bar button:has-text("任务")');
+await page.waitForSelector('.screen:has-text("进行中的任务")');
 await shot('quests');
 await page.click('.nav-back'); // quickBack → 回渔村
 await page.waitForSelector('li:has-text("村长福伯")');

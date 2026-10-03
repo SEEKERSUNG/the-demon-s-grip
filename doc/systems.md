@@ -62,7 +62,7 @@ base  *= skill.power                 // 普攻 power = 1
 - `completeQuest`：强制完成（战斗 `onWin.quests` 等场景）。
 - `afterComplete`：置 `onComplete.flags`、`unlockChain(unlocks)`（自动接取后续）、广播 `quest:completed`。
 - **防跳链**：对话接取走 `questUnlockable`，校验 `prereqQuests`（须已完成）与 `prereqFlags`。
-- **导航路径（v1.7.0）**：`objectiveNav(CONTENT, ob)` 内容反查目标所在地点/区域（talk → NPC 地点、kill → 含该敌人的全部地点、explore → 地点本身、collect → null），`questTurnInNav` 反查交还 NPC 地点。任务日志为每个目标渲染「📍 世界地图 → 区域 → 地点」，单地点且被锁定时附 🔒 原因（复用 `locLockReason`），collect 目标复用物品百科的获取途径索引——零硬编码，新增内容自动纳入。
+- **导航路径（v1.7.0）+ 快速前往（v1.7.1）**：`objectiveNav(CONTENT, ob)` 内容反查目标所在地点/区域（talk → NPC 地点、kill → 含该敌人的全部地点、explore → 地点本身、collect → null），`questTurnInNav` 反查交还 NPC 地点。任务日志为每个目标渲染「📍 世界地图 → 区域 → 地点」，单地点且被锁定时附 🔒 原因（复用 `locLockReason`），collect 目标复用物品百科的获取途径索引——零硬编码，新增内容自动纳入。路径旁渲染「🧭 前往」按钮（`goBtns`）：点击 `GRPG.enterLocation(locId)` 一键直达目标地点（复用其锁定校验/访问记录/地点屏切换）；多地点目标按地点分别出按钮并带地点名，待交还任务同样可一键去找委托人，玩家已在该地点时不渲染按钮。
 
 > 章节推进自动接线：`quest:completed` 且 quest == 当前章节 `endQuest` → `story.finishChapter`。
 

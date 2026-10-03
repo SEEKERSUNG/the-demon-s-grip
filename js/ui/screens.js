@@ -550,6 +550,11 @@ export const SCREENS = {
 
     // 目标导航行：📍 世界地图 → 区域 → 地点（单地点时附锁定原因）；collect 显示获取途径
     let srcIndex = null;
+    // 快速前往按钮：直达目标地点（复用 enterLocation 的锁定校验与访问记录）；已在该地点时不显示
+    const goBtns = (locIds) => locIds
+      .filter((id) => game.state.location !== id)
+      .map((id) => `<button class="nav-go" onclick="GRPG.enterLocation('${id}')">🧭 ${locIds.length === 1 ? '前往' : esc(locById(id)?.name || id)}</button>`)
+      .join(' ');
     const navHtml = (ob) => {
       if (ob.type === 'collect') {
         srcIndex ||= buildItemSources();
@@ -564,13 +569,13 @@ export const SCREENS = {
         const reason = locLockReason(locById(nav.locIds[0]));
         if (reason) lock = ` <span class="lock">🔒 ${esc(reason)}</span>`;
       }
-      return `<div class="obj-path">📍 ${esc(nav.text)}${lock}</div>`;
+      return `<div class="obj-path">📍 ${esc(nav.text)}${lock} ${goBtns(nav.locIds)}</div>`;
     };
 
     // 已完成待交还：提示回找委托人的路径
     const doneText = (q) => {
       const nav = quests.questTurnInNav(CONTENT, q);
-      return `<div class="objective" style="color:#f4d47a">✓ 已完成，请向委托人交付</div>${nav ? `<div class="obj-path">📍 ${esc(nav.text)}</div>` : ''}`;
+      return `<div class="objective" style="color:#f4d47a">✓ 已完成，请向委托人交付</div>${nav ? `<div class="obj-path">📍 ${esc(nav.text)} ${goBtns([nav.locId])}</div>` : ''}`;
     };
 
     const backAction = back === 'map' ? "GRPG.showScreen('map')" : back === 'quick' ? "GRPG.quickBack()" : "GRPG.showScreen('menu')";

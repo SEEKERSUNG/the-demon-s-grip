@@ -173,6 +173,17 @@ assert(app.innerHTML.includes('买入'), '商店渲染');
 GRPG.showScreen('quests');
 assert(app.innerHTML.includes('进行中的任务'), '任务日志渲染');
 assert(app.innerHTML.includes('📍') && app.innerHTML.includes('世界地图 →'), '任务目标显示地图路径（📍 世界地图 → …）');
+assert(app.innerHTML.includes('nav-go') && app.innerHTML.includes('🧭 前往'), '任务路径旁显示快速前往按钮');
+// 待交还分支：Q1 置为待交还 → 重渲染 → 交还路径按钮出现 → 还原
+const q1 = GRPG.getGame().state.quests.Q1_CH1_VILLAGE_DESTROYED;
+const q1Status = q1.status;
+q1.status = 'done';
+GRPG.showScreen('quests');
+assert(app.innerHTML.includes('请向委托人交付') && app.innerHTML.includes('nav-go'), '待交还任务显示「去找委托人」前往按钮');
+q1.status = q1Status;
+// 按钮动作复现：按钮 onclick 即 GRPG.enterLocation(目标地点)
+GRPG.enterLocation('LOC_VILLAGE');
+assert(GRPG.getGame().state.location === 'LOC_VILLAGE' && app.innerHTML.includes('离开此地'), '前往按钮动作 → 直达目标地点（地点屏渲染）');
 GRPG.showScreen('status');
 assert(app.innerHTML.includes('攻击'), '状态面板渲染');
 GRPG.openMenu();
