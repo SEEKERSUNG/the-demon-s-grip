@@ -62,6 +62,7 @@ base  *= skill.power                 // 普攻 power = 1
 - `completeQuest`：强制完成（战斗 `onWin.quests` 等场景）。
 - `afterComplete`：置 `onComplete.flags`、`unlockChain(unlocks)`（自动接取后续）、广播 `quest:completed`。
 - **防跳链**：对话接取走 `questUnlockable`，校验 `prereqQuests`（须已完成）与 `prereqFlags`。
+- **导航路径（v1.7.0）**：`objectiveNav(CONTENT, ob)` 内容反查目标所在地点/区域（talk → NPC 地点、kill → 含该敌人的全部地点、explore → 地点本身、collect → null），`questTurnInNav` 反查交还 NPC 地点。任务日志为每个目标渲染「📍 世界地图 → 区域 → 地点」，单地点且被锁定时附 🔒 原因（复用 `locLockReason`），collect 目标复用物品百科的获取途径索引——零硬编码，新增内容自动纳入。
 
 > 章节推进自动接线：`quest:completed` 且 quest == 当前章节 `endQuest` → `story.finishChapter`。
 
@@ -198,3 +199,26 @@ v1.5.0 起，地图/区域/地点三个核心游戏屏幕底部增加 sticky 快
 - 每张卡片：图标、名称+稀有度、持有数量（背包+已装备）、基准价、等级需求、属性加成/恢复效果、描述。
 - **获取途径自动汇总**：`buildItemSources()` 从内容数据反向扫描——开局携带（`createInitialState`）、商店库存、敌人掉落、宝箱、事件 `then.items`、任务奖励 `rewards.items`。**零硬编码**：新增任何内容条目，百科自动纳入，无需改引擎。
 - 无任何来源的道具显示「— 暂无获取途径 —」（可据此发现内容缺口，如尚未投放的道具）。
+
+## 自动战斗（v1.7.0）
+
+战斗屏指令栏（攻击/技能/道具）第 4 位「🪄 自动战斗」按钮，点击 `GRPG.startAutoBattle()` 即开始接管当前战斗——**无独立设置屏**，白名单与阈值用默认配置（校验撤退线 < 回血线、当前处于玩家回合后 `uiState.auto.enabled = true`，自动期间面板替换指令区）。
+
+**决策层 `systems/autoBattle.js`**（纯逻辑、无 DOM、node 可测）：
+
+- `cfg = { items, healAt, dangerAt }`——`items` 是**允许自动使用的恢复道具白名单**（默认 = 背包内全部恢复道具，首次开始时物化；只认 id，实际持有量决策时查背包）；`healAt`（回血线，默认 0.5）；`dangerAt`（撤退线，默认 0.25，须 < healAt）。
+- `chooseAutoAction(game, combat, cfg)` 按优先级产出一条 `doPlayerAction` 认可的指令：
+  1. **血量 ≤ 撤退线**：白名单回血药 → 治疗技能（MP 够）→ 都没有则 `{ type:'flee' }` 逃跑退出；
+  2. **血量 ≤ 回血线**：治疗技能（省药）→ 回血药 → 都没有继续进攻；
+  3. **进攻**：最强可用攻击技能（按 `power` 降序、MP 够）→ MP ≤ 35% 且有白名单魔力药先补给 → 普攻。
+  - 攻击/技能目标固定为**血量最低的存活敌人**（快速减员）；`selectedRecovery` 只认「usable + 有 hp/mp 效果 + 背包有货」的白名单道具，按恢复量取最大。
+- `autoDangerReason(game, cfg)`：**场间**（上一场胜利后）血量 ≤ 撤退线且无回血药、无 MP 够的治疗技能 → 返回停止原因字符串，否则 `null`。
+- `actionLabel(game, combat, cfg)`：自动战斗面板「下一动」预判文案。
+
+**驱动层 `ui/combatScreen.js`**：
+
+- 节拍调度可注入（`setAutoScheduler`）：默认 `setTimeout`（700ms/指令、1100ms/续场）；uiSmoke 的 `setTimeout` 是同步执行的，注入队列调度器手动 drain，避免「渲染→节拍→动作→渲染」递归死循环。
+- 每拍执行 `chooseAutoAction` → `doPlayerAction`；指令失效（目标倒下/满血等）回退普攻，再失败才停止。
+- **胜利自动续场**：结算后先查 `autoDangerReason` → 有原因/章节过场/地点无敌人 → 停止并提示；否则 `encounter.startLocationBattle` 开下一场（`auto.battles` 计数）。
+- **失败/逃跑自动停止**；面板提供「⏹ 停止自动战斗」（转手动）与「💨 立即撤退」（停止 + 逃跑）。
+- 状态存 `uiState.auto`（`enabled/items/itemsPicked/healAt/dangerAt/battles`），读档/新游戏/回标题调 `resetAuto()` 复位（含取消未触发节拍）。

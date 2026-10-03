@@ -116,6 +116,47 @@ assert(app.innerHTML.includes('战斗'), '战斗屏幕渲染');
 GRPG.cmdAttack(); // 至少执行一次指令不崩溃
 assert(true, '攻击指令执行');
 
+console.log('\n=== 自动战斗 ===');
+// 注入队列调度器：uiSmoke 的 setTimeout 是同步执行的，会把「渲染→节拍→动作→渲染」跑成死循环；
+// 队列调度器只记录待执行节拍，由测试手动 drain 驱动。
+{
+  const cs = await import('../js/ui/combatScreen.js');
+  const screens = await import('../js/ui/screens.js');
+  const uiState = screens.uiState;
+  const queue = new Map();
+  let qid = 0;
+  cs.setAutoScheduler({
+    schedule(fn) { const id = ++qid; queue.set(id, fn); return id; },
+    cancel(id) { queue.delete(id); },
+  });
+  const drain = (max) => { let n = 0; while (queue.size && n < max) { const [id, fn] = queue.entries().next().value; queue.delete(id); fn(); n += 1; } return n; };
+
+  const g = GRPG.getGame();
+  g.combat = null; // 清掉上一节残留的战斗
+  GRPG.enterLocation('LOC_SEASHORE');
+  assert(!app.innerHTML.includes('自动挂机'), '地点屏不再显示自动挂机节点（入口移至指令栏）');
+
+  GRPG.startBattle();
+  assert(!!g.combat && app.innerHTML.includes('🪄 自动战斗'), '战斗指令栏显示自动战斗入口');
+
+  GRPG.startAutoBattle(); // 点击即开始：无设置屏，用默认白名单与阈值
+  assert(uiState.auto.enabled === true, '点自动战斗 → enabled 置位');
+  assert(!!g.combat && app.innerHTML.includes('自动战斗中'), '战斗屏显示自动战斗面板');
+  assert(uiState.auto.itemsPicked === true, '默认白名单已物化（背包内全部恢复道具）');
+  assert(uiState.auto.healAt === 0.5 && uiState.auto.dangerAt === 0.25, '默认阈值（回血线 50% / 撤退线 25%）');
+
+  const steps = drain(400);
+  assert(steps > 0, `自动战斗节拍自动执行（${steps} 步）`);
+  assert(uiState.auto.battles >= 1, `自动战斗胜利自动续场（已完成 ${uiState.auto.battles} 场续战）`);
+
+  if (uiState.auto.enabled) GRPG.stopAuto();
+  assert(uiState.auto.enabled === false, '手动停止自动战斗 → enabled 复位');
+  assert(queue.size === 0, '停止后无残留节拍');
+
+  g.combat = null; // 清理，避免影响后续 autoSave 断言
+  GRPG.showScreen('map');
+}
+
 console.log('\n=== 行商（第二章军营）对话开商店 ===');
 GRPG.showScreen('map');
 GRPG.enterLocation('LOC_CAMP');
@@ -131,6 +172,7 @@ GRPG.showScreen('shop', { shopId: 'SHOP_SMITH', returnTo: 'location' });
 assert(app.innerHTML.includes('买入'), '商店渲染');
 GRPG.showScreen('quests');
 assert(app.innerHTML.includes('进行中的任务'), '任务日志渲染');
+assert(app.innerHTML.includes('📍') && app.innerHTML.includes('世界地图 →'), '任务目标显示地图路径（📍 世界地图 → …）');
 GRPG.showScreen('status');
 assert(app.innerHTML.includes('攻击'), '状态面板渲染');
 GRPG.openMenu();

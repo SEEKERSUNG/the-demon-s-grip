@@ -56,6 +56,44 @@ export function questUnlockable(game, quest) {
   return true;
 }
 
+// ===== 任务导航路径（内容反查，零硬编码）=====
+// 目标 id → 地点 → 区域，给任务日志渲染「世界地图 → 区域 → 地点」路径：
+// talk → NPC 所在地点；kill → 含该敌人的全部地点；explore → 地点本身；
+// collect 无固定地点（由物品百科的获取途径展示）。找不到返回 null。
+export function objectiveNav(CONTENT, ob) {
+  const locs = [];
+  if (ob.type === 'talk') {
+    const npcEnt = CONTENT.npcs.find((n) => n.id === ob.target);
+    const loc = npcEnt && CONTENT.locations.find((l) => l.id === npcEnt.location);
+    if (loc) locs.push(loc);
+  } else if (ob.type === 'kill') {
+    for (const loc of CONTENT.locations) {
+      if ((loc.enemies || []).some(([eid]) => eid === ob.target)) locs.push(loc);
+    }
+  } else if (ob.type === 'explore') {
+    const loc = CONTENT.locations.find((l) => l.id === ob.target);
+    if (loc) locs.push(loc);
+  }
+  if (!locs.length) return null;
+  const pathOf = (loc) => {
+    const r = CONTENT.regions.find((x) => x.id === loc.region);
+    return `${r ? `${r.emoji}${r.name} → ` : ''}${loc.emoji}${loc.name}`;
+  };
+  return {
+    text: locs.length === 1 ? `世界地图 → ${pathOf(locs[0])}` : locs.map(pathOf).join(' ｜ '),
+    locIds: locs.map((l) => l.id),
+  };
+}
+
+// 交还路径：阶段全通后回找委托人（返回 NPC 所在地点 + NPC 名）
+export function questTurnInNav(CONTENT, quest) {
+  const npcEnt = quest.turnIn ? CONTENT.npcs.find((n) => n.id === quest.turnIn) : null;
+  const loc = npcEnt && CONTENT.locations.find((l) => l.id === npcEnt.location);
+  if (!loc) return null;
+  const r = CONTENT.regions.find((x) => x.id === loc.region);
+  return { text: `世界地图 → ${r ? `${r.emoji}${r.name} → ` : ''}${loc.emoji}${loc.name} · ${npcEnt.name}`, locId: loc.id };
+}
+
 // 事件驱动的目标进度。obj: { type:'talk'|'kill'|'explore'|'collect', target, n }
 export function progressObjective(game, obj) {
   const { state } = game;

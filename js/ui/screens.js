@@ -13,13 +13,19 @@ import * as encounter from '../systems/encounter.js';
 import * as dialogue from '../systems/dialogue.js';
 import * as shop from '../systems/shop.js';
 import * as npc from '../systems/npc.js';
+import * as quests from '../systems/quests.js';
 import { esc, itemById, locById, regionById, npcById, pct, toast, rarityText, itemStatsText, slotLabel, backToTitle, doLoad, loadAutoSave } from './main.js';
 import { GAME_VERSION, GAME_TITLE } from '../core/version.js';
 
 const app = document.getElementById('app');
 
 let game = null;
-export const uiState = { pendingInterlude: null, pendingNext: null, currentScreen: null, menuReturn: null, inventoryTab: 'bag', activeSlot: -1, quickReturn: null };
+export const uiState = {
+  pendingInterlude: null, pendingNext: null, currentScreen: null, menuReturn: null,
+  inventoryTab: 'bag', activeSlot: -1, quickReturn: null,
+  // 自动战斗配置（会话内持久：跨战斗保留；读档/回标题时 enabled 复位）
+  auto: { enabled: false, items: [], itemsPicked: false, healAt: 0.5, dangerAt: 0.25, battles: 0 },
+};
 
 export function setGame(g) { game = g; if (g) wireGameEvents(g); }
 export function getGame() { return game; }
@@ -420,7 +426,6 @@ export const SCREENS = {
     </div>`;
   },
 
-  // ----- 对话 -----
   dialogue({ npcId }) {
     const npcD = npc.getNpc(CONTENT, npcId);
     const dlg = dialogue.getDialogue(CONTENT, npcD.dialogue);
@@ -539,8 +544,33 @@ export const SCREENS = {
         const done = cur >= need;
         const targetName = { talk: npcById(ob.target)?.name || ob.target, kill: CONTENT.enemies.find((e) => e.id === ob.target)?.name || ob.target, explore: locById(ob.target)?.name || ob.target, collect: itemById(ob.target)?.name || ob.target }[ob.type];
         const label = { talk: '与', kill: '击败 ', explore: '探索 ', collect: '收集 ' }[ob.type];
-        return `<div class="objective ${done ? 'done' : ''}">${label}${targetName} ${cur}/${need}</div>`;
+        return `<div class="objective ${done ? 'done' : ''}">${label}${targetName} ${cur}/${need}</div>${navHtml(ob)}`;
       }).join('');
+    };
+
+    // 目标导航行：📍 世界地图 → 区域 → 地点（单地点时附锁定原因）；collect 显示获取途径
+    let srcIndex = null;
+    const navHtml = (ob) => {
+      if (ob.type === 'collect') {
+        srcIndex ||= buildItemSources();
+        const src = srcIndex[ob.target];
+        if (!src?.length) return '';
+        return `<div class="obj-path">📍 获取途径：${esc(src.slice(0, 2).join('；'))}${src.length > 2 ? ' 等' : ''}</div>`;
+      }
+      const nav = quests.objectiveNav(CONTENT, ob);
+      if (!nav) return '';
+      let lock = '';
+      if (nav.locIds.length === 1) {
+        const reason = locLockReason(locById(nav.locIds[0]));
+        if (reason) lock = ` <span class="lock">🔒 ${esc(reason)}</span>`;
+      }
+      return `<div class="obj-path">📍 ${esc(nav.text)}${lock}</div>`;
+    };
+
+    // 已完成待交还：提示回找委托人的路径
+    const doneText = (q) => {
+      const nav = quests.questTurnInNav(CONTENT, q);
+      return `<div class="objective" style="color:#f4d47a">✓ 已完成，请向委托人交付</div>${nav ? `<div class="obj-path">📍 ${esc(nav.text)}</div>` : ''}`;
     };
 
     const backAction = back === 'map' ? "GRPG.showScreen('map')" : back === 'quick' ? "GRPG.quickBack()" : "GRPG.showScreen('menu')";
@@ -554,7 +584,7 @@ export const SCREENS = {
           <div class="quest-item">
             <h4>${q.name}<span class="quest-tag ${q.type}">${q.type === 'main' ? '主线' : '支线'}</span></h4>
             <div class="small dim">${esc(q.desc)}</div>
-            ${qs.status === 'done' ? '<div class="objective" style="color:#f4d47a">✓ 已完成，请向委托人交付</div>' : stageText(q, qs)}
+            ${qs.status === 'done' ? doneText(q) : stageText(q, qs)}
           </div>`).join('') : '<div class="dim">暂无进行中的任务</div>'}
       </div>
       <div class="panel">
@@ -907,6 +937,25 @@ export function startBattle() {
   if (combat) showScreen('combat');
 }
 
+// ===== 自动战斗（战斗屏指令栏入口，点击即开始）=====
+// 无独立设置屏：白名单默认=背包内全部恢复道具（首次开始时物化），阈值用 uiState.auto 初值（回血线50%/撤退线25%）。
+export function startAutoBattle() {
+  const cfg = uiState.auto;
+  if (cfg.dangerAt >= cfg.healAt) { toast('⚠️ 撤退线需低于回血线'); return; }
+  const combat = game.combat;
+  if (!combat || combat.phase !== 'player') { toast('当前没有可接管的战斗'); return; }
+  if (!cfg.itemsPicked) {
+    cfg.items = game.state.inventory
+      .map((s) => itemById(s.id))
+      .filter((d) => d?.usable && d.effect && ((d.effect.hp || 0) > 0 || (d.effect.mp || 0) > 0))
+      .map((d) => d.id);
+    cfg.itemsPicked = true;
+  }
+  cfg.enabled = true;
+  cfg.battles = 0;
+  showScreen('combat');
+}
+
 export function openChest(lid, chestId) {
   const loc = locById(lid);
   const chest = loc.chests.find((c) => c.id === chestId);
@@ -1118,4 +1167,5 @@ export const ACTIONS = {
   buy, sell, respawn, backFromMenu, closeShop, confirmBackToTitle,
   openQuests, openInventory, openStatus, quickBack,
   downloadSave, importSave, loadAutoSave,
+  startAutoBattle,
 };

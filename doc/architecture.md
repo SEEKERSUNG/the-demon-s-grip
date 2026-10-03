@@ -28,6 +28,7 @@ js/
     stats.js      伤害 / 治疗公式（唯一权威）
     skills.js     技能查找 / 可用技能集合（学会 + 装备解锁）
     combat.js     回合制战斗状态机（胜利/失败/逃跑结算）
+    autoBattle.js 自动战斗决策（用药/治疗/技能/普攻/撤退，纯逻辑）
     enemyAction.js 敌方 AI：按权重/条件选技能
     loot.js       掉落掷点 / 宝箱解析
     encounter.js  从地点敌人池抽遭遇，启动战斗
@@ -42,7 +43,7 @@ js/
   ui/        界面层
     main.js       boot() 启动、GRPG 全局桥（action 统一挂载）、存档操作
     screens.js    屏幕路由 SCREENS + 各屏幕渲染 + 全局动作 ACTIONS
-    combatScreen.js 战斗屏幕渲染 + 战斗指令动作
+    combatScreen.js 战斗屏幕渲染 + 战斗指令动作 + 自动战斗驱动（节拍可注入）
 
   content/   ★ 所有游戏内容（数据）
     items / skills / enemies / npcs / regions / locations /

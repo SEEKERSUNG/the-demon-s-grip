@@ -44,6 +44,7 @@ export function buildLocationNodes(game, loc) {
   const nodes = [];
   if (loc.enemies?.length) {
     nodes.push({ kind: 'battle', title: '探索寻敌', desc: '在区域内巡视，遭遇魔物', emoji: '⚔️' });
+    // 自动战斗入口在战斗屏指令栏（combatScreen 第 4 个指令按钮），地点不放节点
   }
   for (const nid of loc.npcs || []) {
     const npc = getNpc(game.CONTENT, nid);

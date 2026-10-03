@@ -8,6 +8,7 @@ import * as player from '../js/systems/player.js';
 import * as quests from '../js/systems/quests.js';
 import * as explore from '../js/systems/explore.js';
 import * as inventory from '../js/systems/inventory.js';
+import * as autoBattle from '../js/systems/autoBattle.js';
 
 let passed = 0;
 let failed = 0;
@@ -272,6 +273,110 @@ console.log('\n=== 交还自动接取任务的 talk 目标回归（同次对话�
   g2.dialogue.startDialogue(g2, dlgKing, { npc: 'NPC_KING', speakerName: '国王' });
   assert(g2.state.quests.Q3_CH3_FIND_CAUSE?.status === 'active', '交还远方烽火 → 幕后黑手自动接取');
   assert(g2.state.quests.Q3_CH3_FIND_CAUSE?.counts['0:0'] === 1, '幕后黑手首阶段 talk(国王) 同次对话即推进');
+}
+
+console.log('\n=== 自动战斗决策回归 ===');
+{
+  const g = createGame({ seed: 61 });
+  godMode(g); // Lv25 → 已学会治愈术/强效治愈及各攻击技能
+  const cfg = { items: ['HERB'], healAt: 0.5, dangerAt: 0.25 };
+  g.inventory.addItem(g, 'HERB', 3);
+
+  let c = g.combatSys.startCombat(g, ['SLIME'], {});
+
+  // 1) 满血 → 进攻（普攻或最强技能），且指令被战斗引擎接受
+  c.playerUnit.curHp = c.playerUnit.stats.maxHp;
+  let a = autoBattle.chooseAutoAction(g, c, cfg);
+  assert(a.type === 'attack' || a.type === 'skill', `满血 → 进攻指令（实际 ${a.type}）`);
+  const r1 = g.combatSys.doPlayerAction(g, c, a);
+  assert(r1.ok === true, '决策产出的进攻指令被战斗引擎接受');
+
+  // 2) 血量低于治疗线、MP 充足 → 治疗技能（省药）
+  c = g.combatSys.startCombat(g, ['SLIME'], {});
+  c.playerUnit.curHp = Math.floor(c.playerUnit.stats.maxHp * 0.4);
+  c.playerUnit.curMp = 50;
+  a = autoBattle.chooseAutoAction(g, c, cfg);
+  assert(a.type === 'skill' && ['HEAL', 'HEAL_PLUS'].includes(a.skillId),
+    `治疗线以下且有 MP → 治疗技能（实际 ${a.type}/${a.skillId || '-'}）`);
+
+  // 3) 血量低于治疗线、MP 不足 → 用药（白名单草药）
+  c.playerUnit.curMp = 0;
+  a = autoBattle.chooseAutoAction(g, c, cfg);
+  assert(a.type === 'item' && a.itemId === 'HERB', `无 MP 有药 → 使用道具（实际 ${a.type}/${a.itemId || '-'}）`);
+  const r3 = g.combatSys.doPlayerAction(g, c, a);
+  assert(r3.ok === true && c.playerUnit.curHp > 0, '决策产出的用药指令被战斗引擎接受');
+
+  // 4) 血量低于危险线、无任何恢复手段 → 逃跑撤退（自动战斗退出）
+  c = g.combatSys.startCombat(g, ['SLIME'], {});
+  c.playerUnit.curHp = Math.floor(c.playerUnit.stats.maxHp * 0.2);
+  c.playerUnit.curMp = 0;
+  a = autoBattle.chooseAutoAction(g, c, { ...cfg, items: [] });
+  assert(a.type === 'flee', `危险线以下且无恢复手段 → 逃跑（实际 ${a.type}）`);
+
+  // 5) 血量低于危险线但有白名单药 → 先嗑药保命
+  a = autoBattle.chooseAutoAction(g, c, cfg);
+  assert(a.type === 'item' && a.itemId === 'HERB', `危险线以下有药 → 优先用药（实际 ${a.type}/${a.itemId || '-'}）`);
+
+  // 6) 血量安全 → 继续进攻
+  c.playerUnit.curHp = c.playerUnit.stats.maxHp;
+  c.playerUnit.curMp = 50;
+  a = autoBattle.chooseAutoAction(g, c, cfg);
+  assert(a.type !== 'flee' && a.type !== 'item', `血量安全 → 不逃跑不用药（实际 ${a.type}）`);
+
+  // 7) 场间停止判断：危险线以下且无恢复手段 → 返回停止原因
+  g.state.player.cur.hp = 1;
+  g.state.player.cur.mp = 0;
+  const reason = autoBattle.autoDangerReason(g, { items: [] });
+  assert(typeof reason === 'string' && reason.includes('自动战斗停止'), '场间：血量危险且无恢复手段 → 停止原因');
+  // 有白名单药 → 继续
+  assert(autoBattle.autoDangerReason(g, cfg) === null, '场间：还有可用的恢复道具 → 继续自动战斗');
+  // 血量恢复 → 继续
+  g.state.player.cur.hp = player.getStats(g.state, g.CONTENT.items).maxHp;
+  assert(autoBattle.autoDangerReason(g, { items: [] }) === null, '场间：血量安全 → 继续自动战斗');
+
+  // 8) 面板提示文案
+  c = g.combatSys.startCombat(g, ['SLIME'], {});
+  const label = autoBattle.actionLabel(g, c, cfg);
+  assert(typeof label === 'string' && label.length > 0, `actionLabel 返回提示（${label}）`);
+}
+
+console.log('\n=== 任务导航路径回归 ===');
+{
+  // kill → 含该敌人的地点（BOSS 单地点）
+  const navBoss = quests.objectiveNav(CONTENT, { type: 'kill', target: 'BOSS_DEMON_KING' });
+  assert(!!navBoss && navBoss.text.includes('王城与军营') && navBoss.text.includes('深渊王座')
+    && navBoss.locIds.length === 1 && navBoss.locIds[0] === 'LOC_DEMON_PALACE',
+  `kill BOSS_DEMON_KING → 世界地图→王城与军营→深渊王座（${navBoss?.text}）`);
+
+  // talk → NPC 所在地点（导师在魔渊荒原）
+  const navTalk = quests.objectiveNav(CONTENT, { type: 'talk', target: 'NPC_MENTOR' });
+  assert(!!navTalk && navTalk.text.startsWith('世界地图') && navTalk.text.includes('魔渊荒原'),
+    `talk NPC_MENTOR → 魔渊荒原（${navTalk?.text}）`);
+
+  // explore → 地点本身
+  const navExp = quests.objectiveNav(CONTENT, { type: 'explore', target: 'LOC_CAVE' });
+  assert(!!navExp && navExp.locIds[0] === 'LOC_CAVE' && navExp.text.includes('海蚀洞穴'),
+    `explore LOC_CAVE → 海蚀洞穴（${navExp?.text}）`);
+
+  // 多地点敌人 → 全部列出（邪修教徒：旧王都 + 荒原）
+  const navMulti = quests.objectiveNav(CONTENT, { type: 'kill', target: 'CULTIST' });
+  assert(!!navMulti && navMulti.locIds.length === 2 && navMulti.text.includes('｜'),
+    `kill CULTIST → 两处地点并列（${navMulti?.text}）`);
+
+  // collect 无固定地点 → null（UI 侧用物品百科获取途径展示）
+  assert(quests.objectiveNav(CONTENT, { type: 'collect', target: 'MAT_BAT_WING' }) === null,
+    'collect 目标不产出地图路径（由获取途径展示）');
+
+  // 交还路径 → 回找委托人
+  const qFinal = quests.getQuest(CONTENT, 'Q2_CH2_FINAL');
+  const navTurn = quests.questTurnInNav(CONTENT, qFinal);
+  assert(!!navTurn && navTurn.text.includes('神秘老者') && navTurn.text.includes('魔渊荒原'),
+    `Q2_CH2_FINAL 交还 → 神秘老者·魔渊荒原（${navTurn?.text}）`);
+
+  // 未知目标 → null 不崩
+  assert(quests.objectiveNav(CONTENT, { type: 'talk', target: 'NPC_NOT_EXIST' }) === null
+    && quests.objectiveNav(CONTENT, { type: 'kill', target: 'ENEMY_NOT_EXIST' }) === null,
+    '未知目标 id → null 不崩溃');
 }
 
 console.log('\n====================================');

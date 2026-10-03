@@ -6,7 +6,7 @@ import { createGame } from '../core/game.js';
 import { saveToSlot, loadFromSlot, listSlots, slotInfo, SLOT_COUNT, deleteSlot, saveAutoSlot, loadAutoSlot, autoSlotInfo, deleteAutoSlot, exportSaveData, importSaveData, importSaveToSlot } from '../core/save.js';
 import * as player from '../systems/player.js';
 import { SCREENS, showScreen, setGame, getGame, uiState, ACTIONS } from './screens.js';
-import { renderCombatScreen, ACTIONS as COMBAT_ACTIONS } from './combatScreen.js';
+import { renderCombatScreen, ACTIONS as COMBAT_ACTIONS, resetAuto } from './combatScreen.js';
 
 // 供其他 UI 模块经 main 统一再导出
 export { showScreen, uiState, getGame, setGame } from './screens.js';
@@ -110,6 +110,7 @@ export function loadAutoSave() {
   const g = createGame({ savedState: saved });
   setGame(g);
   wireAutoSave(g);
+  resetAuto();
   uiState.quickReturn = null;
   uiState.pendingInterlude = null;
   uiState.pendingNext = null;
@@ -134,6 +135,7 @@ export function doLoad(slot) {
   setGame(g);
   uiState.activeSlot = slot; // 读档后自动保存写回该档位
   wireAutoSave(g);
+  resetAuto();
   // 若无进行中的章节开始过场，直接进地图
   uiState.pendingInterlude = null;
   uiState.pendingNext = null;
@@ -148,6 +150,7 @@ export function startNewGame(slot) {
   setGame(g);
   uiState.activeSlot = slot; // 新档自动保存写回所选档位
   wireAutoSave(g);
+  resetAuto();
   uiState.pendingInterlude = null;
   uiState.pendingNext = null;
   uiState.menuReturn = null;
@@ -157,6 +160,7 @@ export function startNewGame(slot) {
 
 export function backToTitle() {
   setGame(null);
+  resetAuto();
   uiState.activeSlot = -1; // 回到标题清除当前档位
   uiState.pendingInterlude = null;
   uiState.pendingNext = null;
@@ -247,6 +251,7 @@ window.GRPG = Object.assign({}, ACTIONS, COMBAT_ACTIONS, {
   SLOT_COUNT,
   getGame,
   setGame,
+  uiState, // 暴露 UI 状态供调试/自动化测试观测（如自动战斗开关复位）
 });
 
 // 启动游戏（index.html 直接以 module 方式加载，需在此主动初始化）

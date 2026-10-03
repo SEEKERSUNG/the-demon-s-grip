@@ -97,6 +97,12 @@
 .command-grid button { text-align: center; padding: 10px 6px; font-size: .92rem; }
 .command-grid button.insufficient { opacity: .4; }
 
+/* 自动战斗面板 */
+.auto-panel {
+  border-color: var(--gold);
+  background: linear-gradient(180deg, rgba(244, 212, 108, .06), var(--panel));
+}
+
 /* 战斗结算 */
 .victory-panel {
   background: linear-gradient(180deg, #1c2a1a, #101a10);

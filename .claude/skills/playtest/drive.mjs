@@ -1,6 +1,7 @@
 // 真实玩家模拟：无头 Edge 驱动游戏页面，完整走第一章核心循环 + 本次新功能
 // 覆盖：新档/章节开场/地图/对话接任务/商店(等级锁+买+卖)/旅店/宝箱/事件/
-//       战斗(防御/道具/逃跑/技能+选目标/团灭复活)/任务交还/装备/状态/物品百科/存读档
+//       战斗(防御/道具/逃跑/技能+选目标/团灭复活)/任务交还/装备/状态/物品百科/
+//       自动战斗(指令栏入口/节拍/续场/停止/撤退)/存读档
 import { chromium } from 'playwright-core';
 
 const BASE = 'http://127.0.0.1:8123';
@@ -71,7 +72,7 @@ async function restAtInn() {
 console.log('\n=== 标题与新档 ===');
 await page.goto(BASE, { waitUntil: 'load' });
 await page.waitForSelector('.title-screen', { timeout: 10000 });
-check('标题屏渲染（版本号）', (await page.textContent('.version')).includes('v1.6.0'));
+check('标题屏渲染（版本号）', (await page.textContent('.version')).includes('v1.7.0'));
 await shot('title');
 await page.click('button:has-text("新的旅程")');
 await page.waitForSelector('button:has-text("开始冒险")');
@@ -107,6 +108,11 @@ await endDialogue();
 await page.click('.bottom-bar button:has-text("任务")');
 await page.waitForSelector('.screen:has-text("进行中的任务")');
 check('任务日志显示渔村之殇', (await page.textContent('.screen')).includes('渔村之殇'));
+{
+  const navLines = await page.locator('.obj-path').allTextContents();
+  check(`任务目标显示地图路径（${navLines.length} 行）`,
+    navLines.length >= 1 && navLines.some((t) => t.includes('世界地图 →')));
+}
 await shot('quests');
 await page.click('.nav-back'); // quickBack → 回渔村
 await page.waitForSelector('li:has-text("村长福伯")');
@@ -242,7 +248,8 @@ await shot('combat-start');
 await page.click('.command-grid button:has-text("防御")');
 await page.waitForSelector('.combat-log .cl-line:has-text("防御姿态")', { timeout: 3000 });
 check('防御指令执行（不抛 TypeError，v1.5.3 修复）', true);
-await page.waitForSelector('.combat-log .cl-line:has-text("造成")', { timeout: 5000 });
+// 敌方回合：伤害日志含「造成」，全体落空则是「落空」——任一即证明敌方回合已执行
+await page.waitForSelector('.combat-log .cl-line:has-text("造成"), .combat-log .cl-line:has-text("落空"), .combat-log .cl-line:has-text("施放")', { timeout: 5000 });
 check('防御后敌方回合正常执行（挨打）', true);
 check('战斗 1 结果：胜利', await fight());
 await shot('combat-victory');
@@ -250,11 +257,47 @@ await shot('combat-victory');
 console.log('\n=== 战斗 2：战斗中用道具 ===');
 await startBattle();
 await page.click('.command-tabs button:has-text("道具")');
-const herbBtn = page.locator('.command-grid button:has-text("草药")');
-check('道具页列出草药', (await herbBtn.count()) === 1);
-await herbBtn.first().click();
-await page.waitForSelector('.combat-log .cl-line:has-text("使用了道具")', { timeout: 5000 });
-check('战斗中使用草药成功（HP 同步修复路径）', true);
+// 草药可能被前面战斗消耗/商店卖掉——任一恢复道具都走同一「HP 同步」回归路径
+const healBtn = page.locator('.command-grid button').filter({ hasText: /草药|生命药水/ });
+const nHeal = await healBtn.count();
+if (nHeal > 0) {
+  check(`道具页列出恢复道具（${nHeal} 种可选）`, true);
+  if ((await playerHpFrac()) >= 0.99) {
+    // 满血（如战斗1团灭后旅店满恢复）：先防御挨一轮再用药，模拟真实玩家
+    await page.click('.command-tabs button:has-text("攻击")');
+    await page.click('.command-grid button:has-text("防御")');
+    await page.waitForSelector('.combat-log .cl-line:has-text("造成"), .combat-log .cl-line:has-text("落空"), .combat-log .cl-line:has-text("施放")', { timeout: 5000 });
+    await page.click('.command-tabs button:has-text("道具")');
+  }
+  if ((await playerHpFrac()) < 0.99) {
+    try {
+      await healBtn.first().click();
+      await page.waitForSelector('.combat-log .cl-line:has-text("使用了道具")', { timeout: 5000 });
+      check('战斗中使用恢复道具成功（HP 同步修复路径）', true);
+    } catch (e) {
+      await page.screenshot({ path: 'shots/DEBUG-battle2-use.png' });
+      const diag = await page.evaluate(() => ({
+        inv: window.GRPG.getGame().state.inventory,
+        hp: document.querySelector('.player-unit .bar.hp span')?.textContent,
+        grid: [...document.querySelectorAll('.command-grid button')].map((b) => b.textContent.trim()),
+        toasts: [...document.querySelectorAll('.toast')].map((t) => t.textContent),
+      })).catch((e2) => ({ evaluateFailed: String(e2) }));
+      console.log('DEBUG-battle2-use:', JSON.stringify(diag));
+      check('战斗中使用恢复道具成功（见 DEBUG-battle2-use）', false);
+    }
+  } else {
+    check('战斗中使用恢复道具（敌方全落空仍满血，本轮跳过）', false);
+  }
+} else {
+  // 诊断后降级：不崩溃，保留后续所有段的覆盖
+  await page.screenshot({ path: 'shots/DEBUG-battle2-empty.png' });
+  const diag = await page.evaluate(() => ({
+    inv: window.GRPG.getGame().state.inventory,
+    grid: [...document.querySelectorAll('.command-grid button')].map((b) => b.textContent.trim()),
+  }));
+  console.log('DEBUG-battle2:', JSON.stringify(diag));
+  check('道具页列出恢复道具（背包为空，见 DEBUG-battle2）', false);
+}
 check('战斗 2 结果：胜利', await fight());
 
 console.log('\n=== 战斗 3：先试逃跑 ===');
@@ -356,25 +399,110 @@ if (lvNow >= 3 && (await strikeBtn.count()) === 1) {
   await page.waitForSelector('.small:has-text("请选择目标")', { timeout: 3000 });
   check('单体技能进入选目标模式', true);
   await page.locator('.enemy-unit').first().click();
-  await page.waitForSelector('.combat-log .cl-line:has-text("猛击")', { timeout: 5000 });
-  check('技能施放 + 点击目标执行', true);
+  // 95% 命中：命中日志含「施放猛击」，落空日志是「旅人 的攻击落空了」（不含技能名）——两种都算施放成功
+  try {
+    // 命中日志：「旅人 施放【猛击】，对 X 造成 N 点伤害」（子串"猛击"即可匹配括号）；
+    // 落空日志：「旅人 的攻击落空了！」（不含技能名，需单独匹配）
+    await page.waitForSelector('.combat-log .cl-line:has-text("猛击"), .combat-log .cl-line:has-text("旅人 的攻击落空")', { timeout: 5000 });
+  } catch (e) {
+    await page.screenshot({ path: 'shots/DEBUG-skill-cast.png' });
+    const info = await page.evaluate(() => {
+      const g = window.GRPG.getGame();
+      const c = g?.combat;
+      return {
+        phase: c?.phase, turn: c?.turn, mp: c?.playerUnit?.curMp, hp: c?.playerUnit?.curHp,
+        enemies: c?.enemies?.map((e) => ({ n: e.name, alive: e.alive, hp: e.curHp })),
+        log: c?.log?.slice(-8).map((l) => l.text),
+        prompt: document.querySelector('.small.gold-text')?.textContent || null,
+        tab: document.querySelector('.command-tabs button.active')?.textContent?.trim() || null,
+        toasts: [...document.querySelectorAll('.toast')].map((t) => t.textContent),
+      };
+    }).catch((e2) => ({ evaluateFailed: String(e2) }));
+    console.log('DEBUG-skill-cast:', JSON.stringify(info));
+    throw e;
+  }
+  check('技能施放 + 点击目标执行（含落空变体）', true);
 } else {
   check(`技能页渲染（Lv.${lvNow} 未学猛击则仅验证页面）`, (await page.locator('.command-grid').count()) === 1);
 }
 check('战斗 4 结果：胜利', await fight());
 
+// ============ 13.4 自动战斗（v1.7.0 新功能：战斗指令栏入口，点击即开始）============
+console.log('\n=== 自动战斗（v1.7.0）===');
+// 开刷前先回村休整满血（真实玩家习惯：满血再开刷）
+await gotoVillage();
+await restAtInn();
+await gotoSeashore();
+
+check('地点屏无自动挂机节点（入口已移至战斗指令栏）', (await page.locator('li:has-text("自动挂机")').count()) === 0);
+await startBattle();
+check('指令栏显示自动战斗按钮', (await page.locator('.command-tabs button:has-text("自动战斗")').count()) === 1);
+await shot('auto-entry');
+
+// 点击即开始（默认白名单=全部恢复道具、回血线 50%、撤退线 25%），面板接管指令区
+await page.click('.command-tabs button:has-text("自动战斗")');
+await page.waitForSelector('.auto-panel', { timeout: 5000 });
+check('自动战斗面板渲染（含预判）', (await page.textContent('.auto-panel')).includes('预判：'));
+check('开始后指令栏被面板替换', (await page.locator('.command-tabs').count()) === 0);
+check('面板显示默认阈值（回血线 50% / 撤退线 25%）', (await page.textContent('.auto-panel')).includes('回血线 50% / 撤退线 25%'));
+await shot('auto-combat');
+
+// 等自动战斗打完第一场并自动续到第 2 场（TICK 700ms + 续场 1100ms）
+await page.waitForSelector('.auto-panel:has-text("第 2 场")', { timeout: 90000 });
+check('战斗胜利自动续场（自动战斗面板显示第 2 场）', true);
+await shot('auto-battle2');
+
+// 手动停止 → 转手动接管
+await page.click('.auto-panel button:has-text("停止自动战斗")');
+await page.waitForSelector('.command-tabs', { timeout: 5000 });
+check('停止后手动指令面板回归', true);
+check('停止后入口按钮回归（可再次开启）', (await page.locator('.command-tabs button:has-text("自动战斗")').count()) === 1);
+{
+  const turnA = await page.evaluate(() => window.GRPG.getGame().combat.turn);
+  await page.waitForTimeout(3200); // > 2 拍 TICK_MS(700)，若有僵尸节拍会推进回合
+  const turnB = await page.evaluate(() => window.GRPG.getGame().combat.turn);
+  check('停止后无残留节拍（回合数不变）', turnA === turnB);
+}
+await shot('auto-stopped');
+check('停止后手动接管完成战斗', await fight());
+
+// 再次开启自动战斗 → 立即撤退（停止+逃跑一键）；上一场手动打完已回地点，需先开战
+await startBattle();
+await page.click('.command-tabs button:has-text("自动战斗")');
+await page.waitForSelector('.auto-panel', { timeout: 5000 });
+await page.click('.auto-panel button:has-text("立即撤退")');
+await page.waitForTimeout(2500);
+{
+  const inLoc = (await page.locator('li:has-text("探索寻敌")').count()) === 1;
+  const inCombat = (await page.locator('.combat-screen').count()) === 1;
+  const autoPanel = inCombat && (await page.locator('.auto-panel').count()) === 1;
+  check('立即撤退后自动战斗已停止（无面板/已离场）', !autoPanel);
+  check(`立即撤退生效（${inLoc ? '成功逃离' : inCombat ? '逃跑失败转手动' : '未知状态'}）`,
+    inLoc || (inCombat && (await page.locator('.command-tabs').count()) === 1));
+  await shot('auto-retreat');
+  // 双分支都断言，保证每轮断言计数确定（否则逃跑首试成败会让总数 ±1）
+  if (inCombat) check('撤退失败后手动收尾', await fight());
+  else check('撤退成功后自动战斗状态已复位', await page.evaluate(() => window.GRPG.uiState.auto?.enabled === false));
+}
+
 // ============ 13.5 故意战死 → 团灭面板 → 复活 ============
 console.log('\n=== 团灭与复活（只防御不用药，故意战死）===');
 await startBattle();
 let deathResult = 'timeout';
-for (let i = 0; i < 40; i++) {
+// 90 轮上限：满血(约90HP)防御态每轮只挨 ~2 伤害，约需 45-50 轮；防御轮次要给足余量
+for (let i = 0; i < 90; i++) {
   if (await page.locator('.gameover').count()) { deathResult = 'defeat'; break; }
   await page.click('.command-tabs button:has-text("攻击")');
   await page.click('.command-grid button:has-text("防御")', { timeout: 3000 });
 }
-check('只防御不用药 → 玩家倒下（团灭面板）', deathResult === 'defeat');
+check(`只防御不用药 → 玩家倒下（团灭面板，实际 ${deathResult}）`, deathResult === 'defeat');
 await shot('gameover');
-await page.click('button:has-text("在最近的城镇醒来")');
+if (deathResult === 'defeat') {
+  await page.click('button:has-text("在最近的城镇醒来")');
+} else {
+  // 兜底：仍未死则跳过 UI 复活继续后续测试（避免整个 run 崩掉拿不到后面的结果）
+  await page.evaluate(() => window.GRPG.respawn());
+}
 await page.waitForSelector('li:has-text("村长福伯")', { timeout: 5000 });
 {
   const s = await state();

@@ -288,6 +288,8 @@
 .quest-item h4 { color: var(--gold-bright); }
 .quest-item .objective { color: var(--text-dim); font-size: .9rem; }
 .quest-item .objective.done { color: var(--ok); text-decoration: line-through; }
+.quest-item .obj-path { margin: 3px 0 9px 12px; color: var(--text-dim); font-size: .82rem; line-height: 1.55; opacity: .85; }
+.quest-item .obj-path .lock { color: #ff9b9b; opacity: 1; }
 .quest-tag {
   font-size: .72rem;
   padding: 2px 8px;
